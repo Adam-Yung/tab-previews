@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Link Previewer",
-  "version": "1.0",
+  "version": "1.1",
   "description": "Click links to preview them in a modal window instead of navigating away. Helps with browsing search results and news feeds.",
   "icons": {
     "48": "icons/tab-preview 48x48.png",
@@ -10,6 +10,18 @@
   "permissions": [
     "storage"
   ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "scripts": [
+      "background.js"
+    ]
+  },
+  "action": {
+    "default_title": "Link Previewer Settings",
+    "default_icon": "icons/tab-preview 96x96.png"
+  },
   "content_scripts": [
     {
       "matches": [

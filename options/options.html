@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Link Previewer Settings</title>
+    <link rel="stylesheet" href="options.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Link Previewer Settings</h1>
+        
+        <form id="settings-form">
+            <div class="setting-group">
+                <label>Preview Window Theme</label>
+                <div class="radio-group">
+                    <label>
+                        <input type="radio" name="theme" value="light">
+                        <span>Light</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="theme" value="dark">
+                        <span>Dark</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <label for="closeKey">Close Preview Key</label>
+                <input type="text" id="closeKey" name="closeKey" placeholder="e.g., Escape">
+                <p class="description">Enter the key you want to use to close the preview window. Examples: `Escape`, `q`.</p>
+            </div>
+
+            <div class="button-container">
+                <button type="submit">Save Settings</button>
+                <span id="status-message"></span>
+            </div>
+        </form>
+    </div>
+    <script src="options.js"></script>
+</body>
+</html>

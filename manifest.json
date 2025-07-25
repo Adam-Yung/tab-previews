@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "Link Previewer",
+  "version": "1.0",
+  "description": "Click links to preview them in a modal window instead of navigating away. Helps with browsing search results and news feeds.",
+  "icons": {
+    "48": "icons/tab-preview 48x48.png",
+    "96": "icons/tab-preview 96x96.png"
+  },
+  "permissions": [
+    "storage"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content_script.js"
+      ],
+      "css": [
+        "styles.css"
+      ]
+    }
+  ],
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "icons/*.svg"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
+}

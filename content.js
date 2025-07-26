@@ -32,15 +32,15 @@ function createPreview(url) {
 
   console.log(`[CONTENT] Starting preview for: ${url}`);
 
-  // 1. Create the host element for our Shadow DOM
+  // Create the host element for our Shadow DOM
   const previewHost = document.createElement('div');
   previewHost.id = 'link-preview-host';
   document.body.appendChild(previewHost);
 
-  // 2. Create the Shadow Root
+  // Create the Shadow Root
   const shadowRoot = previewHost.attachShadow({ mode: 'open' });
 
-  // 3. Create the UI elements (but don't load the iframe yet)
+  // Create the UI elements (but don't load the iframe yet)
   const style = document.createElement('style');
   style.textContent = getPreviewCSS(); // CSS is now injected first
   shadowRoot.appendChild(style);
@@ -65,7 +65,6 @@ function createPreview(url) {
   `;
   container.appendChild(addressBar);
   
-  // Add a loading indicator
   const loader = document.createElement('div');
   loader.className = 'loader-container';
   loader.innerHTML = `<div class="loader"></div>`;
@@ -73,24 +72,41 @@ function createPreview(url) {
 
   const iframe = document.createElement('iframe');
   iframe.id = 'link-preview-iframe';
-  // IMPORTANT: DO NOT set iframe.src here yet
   container.appendChild(iframe);
 
   // Dim the main page
   document.body.classList.add('link-preview-page-active');
 
-  // 4. THE FIX: Ask the background script to get ready
+  // Ask the background script to get ready for the network request
   console.log('[CONTENT] Sending "prepareToPreview" message to background.');
   browser.runtime.sendMessage({ action: 'prepareToPreview', url: url })
     .then(response => {
       if (response && response.ready) {
         console.log('[CONTENT] Background is ready. Loading iframe src.');
-        // 5. Once background confirms, load the iframe content
+        // Once background confirms, load the iframe content
         iframe.src = url;
         iframe.onload = () => {
-          // Hide loader when content is displayed
           loader.style.display = 'none';
           console.log('[CONTENT] Iframe content loaded.');
+
+          // --- SCROLL TRAPPING LOGIC ---
+          // This prevents scrolling in the iframe from scrolling the parent page.
+          try {
+            const iframeDoc = iframe.contentDocument.documentElement;
+            iframe.contentWindow.addEventListener('wheel', e => {
+              const { scrollTop, scrollHeight, clientHeight } = iframeDoc;
+              // Scrolling down at the bottom of the iframe
+              if (e.deltaY > 0 && Math.abs(scrollHeight - clientHeight - scrollTop) < 1) {
+                e.preventDefault();
+              }
+              // Scrolling up at the top of the iframe
+              else if (e.deltaY < 0 && scrollTop === 0) {
+                e.preventDefault();
+              }
+            }, { passive: false }); // passive: false is required to allow preventDefault
+          } catch(err) {
+            console.warn("[Link Previewer] Could not attach scroll listener to iframe, possibly due to cross-origin restrictions within the frame itself.", err);
+          }
         };
       } else {
           console.error('[CONTENT] Did not receive ready signal from background script.');
@@ -169,7 +185,6 @@ document.addEventListener('click', e => {
 
 /**
  * Returns the CSS for the preview UI as a string.
- * This is injected into the Shadow DOM to ensure styles are isolated.
  */
 function getPreviewCSS() {
   return `
@@ -186,8 +201,8 @@ function getPreviewCSS() {
       border-radius: 15px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
       display: flex; flex-direction: column; overflow: hidden;
       pointer-events: auto;
-      backdrop-filter: blur(12px) saturate(180%);
-      -webkit-backdrop-filter: blur(12px) saturate(180%);
+      backdrop-filter: blur(12px) saturate(150%);
+      -webkit-backdrop-filter: blur(12px) saturate(150%);
       animation: fadeIn 0.3s forwards cubic-bezier(0.4, 0, 0.2, 1);
     }
     @keyframes fadeIn {
@@ -199,29 +214,33 @@ function getPreviewCSS() {
       to { transform: translate(-50%, -50%) scale(0.95); opacity: 0; }
     }
     #link-preview-container.light {
-      background: rgba(255, 255, 255, 0.65); border: 1px solid rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, 0.5); /* Increased transparency */
+      border: 2px solid rgba(255, 255, 255, 0.3); /* Thicker border */
     }
     #link-preview-container.dark {
-      background: rgba(30, 30, 30, 0.65); color: #f1f1f1; border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(30, 30, 30, 0.5); /* Increased transparency */
+      color: #f1f1f1;
+      border: 2px solid rgba(255, 255, 255, 0.1); /* Thicker border */
     }
     #link-preview-address-bar {
-      display: flex; align-items: center; padding: 10px 15px;
+      display: flex; align-items: center; padding: 6px 15px; /* Slimmer padding */
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      font-size: 14px; flex-shrink: 0;
+      font-size: 13px; flex-shrink: 0;
     }
     #link-preview-container.light #link-preview-address-bar {
-      background: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.6));
-      border-bottom: 1px solid rgba(0, 0, 0, 0.08); color: #333;
+      background: rgba(255, 255, 255, 0.4); /* More transparent gradient */
+      color: #111;
     }
     #link-preview-container.dark #link-preview-address-bar {
-      background: rgba(0, 0, 0, 0.3); border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.25); /* More transparent */
     }
     .link-preview-url {
       flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: 15px;
     }
     .link-preview-controls button {
-      background: transparent; border: none; font-size: 22px; cursor: pointer;
-      padding: 0 8px; color: inherit; opacity: 0.7; transition: opacity 0.2s, transform 0.2s;
+      background: transparent; border: none; font-size: 20px; /* Slightly smaller buttons */
+      cursor: pointer; padding: 0 8px; color: inherit; opacity: 0.7; 
+      transition: opacity 0.2s, transform 0.2s;
     }
     .link-preview-controls button:hover { opacity: 1; transform: scale(1.1); }
     .loader-container {
@@ -233,7 +252,11 @@ function getPreviewCSS() {
     }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     #link-preview-iframe {
-      flex-grow: 1; border: none; background: transparent;
+      flex-grow: 1; border: none; background: #fff;
+      border-top: 1px solid rgba(0, 0, 0, 0.1); /* Separator line */
+    }
+    #link-preview-container.dark #link-preview-iframe {
+      border-top: 1px solid rgba(255, 255, 255, 0.1); /* Separator line for dark mode */
     }
   `;
 }

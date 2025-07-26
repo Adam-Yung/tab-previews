@@ -1,49 +1,71 @@
-/**
- * @file background.js
- * @description Handles background tasks for the extension.
- * 1. Opens the options page when the toolbar icon is clicked.
- * 2. Fetches URL content to bypass X-Frame-Options limitations.
- */
+// background.js
 
-// 1. Handle toolbar icon click
-browser.action.onClicked.addListener(() => {
-  browser.runtime.openOptionsPage();
+let previewingUrl = null;
+
+/**
+ * The core logic: Intercepts network requests intended for the preview iframe.
+ * It strips security headers that would prevent the page from being displayed.
+ */
+function headersListener(details) {
+  // We only modify headers for the specific URL we are currently trying to preview.
+  if (details.type === 'sub_frame' && details.url === previewingUrl) {
+    console.log(`[BACKGROUND] Intercepted headers for target URL: ${details.url}`);
+    
+    const newHeaders = details.responseHeaders.filter(header => {
+      const headerName = header.name.toLowerCase();
+      // Remove security headers that prevent framing.
+      const isForbiddenHeader = 
+        headerName === 'content-security-policy' ||
+        headerName === 'x-frame-options' ||
+        headerName === 'x-content-type-options';
+      
+      if (isForbiddenHeader) {
+        console.log(`[BACKGROUND] Removing header: ${headerName}`);
+      }
+      return !isForbiddenHeader;
+    });
+
+    // After we've successfully intercepted and modified the headers,
+    // we can clear the target URL to prevent accidentally modifying other requests.
+    previewingUrl = null;
+    console.log('[BACKGROUND] Headers modified. Clearing target URL.');
+
+    return { responseHeaders: newHeaders };
+  }
+  // Return unmodified headers for all other requests.
+  return { responseHeaders: details.responseHeaders };
+}
+
+// Register the webRequest listener
+browser.webRequest.onHeadersReceived.addListener(
+  headersListener,
+  { urls: ["<all_urls>"], types: ["sub_frame"] },
+  ["blocking", "responseHeaders"]
+);
+
+/**
+ * Listens for messages from other parts of the extension.
+ */
+browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  switch (request.action) {
+    // This is the new, race-condition-safe message.
+    case 'prepareToPreview':
+      console.log(`[BACKGROUND] Received request to prepare for: ${request.url}`);
+      previewingUrl = request.url;
+      // Immediately send a response back to the content script to confirm readiness.
+      sendResponse({ ready: true });
+      break;
+
+    case 'clearPreview':
+      console.log('[BACKGROUND] Clearing preview state.');
+      previewingUrl = null;
+      break;
+  }
+  // Return true is necessary for asynchronous sendResponse.
+  return true;
 });
 
-// 2. Listen for messages from the content script
-browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.type === 'fetchUrl') {
-    // Asynchronously fetch the URL
-    fetch(request.url)
-      .then(response => {
-        // Check if the request was successful
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.text(); // Get the HTML content as text
-      })
-      .then(html => {
-        // Create a <base> tag to ensure all relative paths (CSS, JS, images)
-        // in the fetched HTML resolve correctly relative to the original URL.
-        const baseTag = `<base href="${request.url}">`;
-
-        // Inject the base tag into the head of the HTML.
-        // This is a simple but effective way to do it.
-        const modifiedHtml = html.replace(/<head([^>]*)>/i, `<head$1>${baseTag}`);
-        
-        // Send the modified HTML back to the content script
-        sendResponse({ success: true, htmlContent: modifiedHtml });
-      })
-      .catch(error => {
-        console.error("Link Previewer Fetch Error:", error);
-        // Send a failure response back to the content script
-        sendResponse({ 
-            success: false, 
-            error: `Could not load preview. The site may be down or blocking requests. (Error: ${error.message})` 
-        });
-      });
-
-    // Return true to indicate that we will send a response asynchronously.
-    return true;
-  }
+// Open options page when the toolbar icon is clicked
+browser.browserAction.onClicked.addListener(() => {
+  browser.runtime.openOptionsPage();
 });

@@ -1,44 +1,71 @@
-/**
- * options.js
- * Handles saving and loading user preferences from the options page.
- */
+// options.js
 
+// --- DOM Elements ---
+const form = document.getElementById('settings-form');
+const themeToggle = document.getElementById('theme-toggle');
+const statusDiv = document.getElementById('save-status');
+const saveButton = document.getElementById('save-button');
+
+// --- Default Settings ---
+const defaults = {
+    duration: 500,
+    modifier: 'shiftKey',
+    theme: 'light',
+    closeKey: 'Escape'
+};
+
+/**
+ * Applies the selected theme (light/dark) to the options page.
+ * @param {string} theme - The theme to apply ('light' or 'dark').
+ */
+function applyTheme(theme) {
+    document.body.className = theme === 'dark' ? 'dark-theme' : 'light-theme';
+    themeToggle.checked = theme === 'dark';
+}
+
+/**
+ * Saves the current form settings to browser storage.
+ * @param {Event} e - The form submission event.
+ */
 function saveOptions(e) {
   e.preventDefault();
-  const theme = document.querySelector('input[name="theme"]:checked').value;
-  const closeKey = document.getElementById('closeKey').value;
+  const settings = {
+    duration: document.getElementById('duration').value,
+    modifier: document.getElementById('modifier').value,
+    theme: themeToggle.checked ? 'dark' : 'light',
+    closeKey: document.getElementById('closeKey').value || 'Escape' // Default to Escape if empty
+  };
 
-  browser.storage.sync.set({
-    theme: theme,
-    closeKey: closeKey || 'Escape' // Default to Escape if empty
-  }).then(() => {
-    // Update status to let user know options were saved.
-    const status = document.getElementById('status-message');
-    status.textContent = 'Options saved.';
-    status.style.opacity = 1;
-    setTimeout(() => {
-      status.style.opacity = 0;
+  browser.storage.local.set(settings).then(() => {
+    statusDiv.textContent = 'Settings Saved!';
+    statusDiv.style.color = 'var(--success-color)';
+    saveButton.textContent = 'Saved!';
+    
+    setTimeout(() => { 
+        statusDiv.textContent = ''; 
+        saveButton.textContent = 'Save Settings';
     }, 2000);
+  }, (error) => {
+    statusDiv.textContent = `Error: ${error}`;
+    statusDiv.style.color = 'var(--error-color)';
   });
 }
 
+/**
+ * Restores saved settings from storage and populates the form.
+ */
 function restoreOptions() {
-  function setCurrentChoice(result) {
-    // Set theme
-    const themeValue = result.theme || 'dark';
-    document.querySelector(`input[name="theme"][value="${themeValue}"]`).checked = true;
-    
-    // Set close key
-    document.getElementById('closeKey').value = result.closeKey || 'Escape';
-  }
-
-  function onError(error) {
-    console.log(`Error: ${error}`);
-  }
-
-  let getting = browser.storage.sync.get(['theme', 'closeKey']);
-  getting.then(setCurrentChoice, onError);
+  browser.storage.local.get(defaults).then(items => {
+    document.getElementById('duration').value = items.duration;
+    document.getElementById('modifier').value = items.modifier;
+    document.getElementById('closeKey').value = items.closeKey;
+    applyTheme(items.theme);
+  });
 }
 
+// --- Event Listeners ---
 document.addEventListener('DOMContentLoaded', restoreOptions);
-document.getElementById('settings-form').addEventListener('submit', saveOptions);
+form.addEventListener('submit', saveOptions);
+themeToggle.addEventListener('change', (e) => {
+    applyTheme(e.target.checked ? 'dark' : 'light');
+});

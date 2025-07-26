@@ -1,42 +1,49 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Link Previewer Settings</title>
-    <link rel="stylesheet" href="options.css">
+  <title>Link Previewer Settings</title>
+  <link rel="stylesheet" href="options.css">
 </head>
+<!-- The theme class will be applied here by JS -->
 <body>
-    <div class="container">
-        <h1>Link Previewer Settings</h1>
-        
-        <form id="settings-form">
-            <div class="setting-group">
-                <label>Preview Window Theme</label>
-                <div class="radio-group">
-                    <label>
-                        <input type="radio" name="theme" value="light">
-                        <span>Light</span>
-                    </label>
-                    <label>
-                        <input type="radio" name="theme" value="dark">
-                        <span>Dark</span>
-                    </label>
-                </div>
-            </div>
+  <div class="container">
+    <header>
+      <h1>Link Previewer</h1>
+      <div class="theme-switcher">
+        <span>☀️</span>
+        <label class="switch">
+          <input type="checkbox" id="theme-toggle">
+          <span class="slider round"></span>
+        </label>
+        <span>🌙</span>
+      </div>
+    </header>
 
-            <div class="setting-group">
-                <label for="closeKey">Close Preview Key</label>
-                <input type="text" id="closeKey" name="closeKey" placeholder="e.g., Escape">
-                <p class="description">Enter the key you want to use to close the preview window. Examples: `Escape`, `q`.</p>
-            </div>
-
-            <div class="button-container">
-                <button type="submit">Save Settings</button>
-                <span id="status-message"></span>
-            </div>
-        </form>
-    </div>
-    <script src="options.js"></script>
+    <form id="settings-form">
+      <div class="form-group">
+        <label for="duration">Long-click Duration</label>
+        <p class="description">How long to hold the mouse button to trigger a preview (in milliseconds).</p>
+        <input type="number" id="duration" name="duration" min="100" step="50">
+      </div>
+      <div class="form-group">
+        <label for="modifier">Modifier Key + Click</label>
+        <p class="description">Alternatively, hold a key and click a link for an instant preview.</p>
+        <select id="modifier" name="modifier">
+          <option value="shiftKey">Shift</option>
+          <option value="ctrlKey">Ctrl</option>
+          <option value="altKey">Alt</option>
+          <option value="metaKey">Meta (Cmd on Mac, Win on Windows)</option>
+        </select>
+      </div>
+       <div class="form-group">
+        <label for="closeKey">Close Preview Key</label>
+        <p class="description">The key to press to close the preview window.</p>
+        <input type="text" id="closeKey" name="closeKey" maxlength="20" placeholder="e.g., Escape">
+      </div>
+      <button type="submit" id="save-button">Save Settings</button>
+      <div id="save-status"></div>
+    </form>
+  </div>
+  <script src="options.js"></script>
 </body>
 </html>

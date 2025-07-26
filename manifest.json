@@ -1,52 +1,40 @@
 {
-  "manifest_version": 3,
-  "name": "Link Previewer",
-  "version": "1.1",
-  "description": "Click links to preview them in a modal window instead of navigating away. Helps with browsing search results and news feeds.",
+  "manifest_version": 2,
+  "name": "Link Previewer (Advanced)",
+  "version": "2.0",
+  "description": "Uses Shadow DOM and webRequest to preview links directly on the page.",
   "icons": {
     "48": "icons/tab-preview 48x48.png",
     "96": "icons/tab-preview 96x96.png"
   },
   "permissions": [
-    "storage"
-  ],
-  "host_permissions": [
+    "activeTab",
+    "storage",
+    "webRequest",
+    "webRequestBlocking",
     "<all_urls>"
   ],
   "background": {
-    "scripts": [
-      "background.js"
-    ]
-  },
-  "action": {
-    "default_title": "Link Previewer Settings",
-    "default_icon": "icons/tab-preview 96x96.png"
+    "scripts": ["background.js"]
   },
   "content_scripts": [
     {
-      "matches": [
-        "<all_urls>"
-      ],
-      "js": [
-        "content_script.js"
-      ],
-      "css": [
-        "styles.css"
-      ]
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["content_style.css"]
     }
   ],
   "options_ui": {
     "page": "options/options.html",
     "open_in_tab": true
   },
-  "web_accessible_resources": [
-    {
-      "resources": [
-        "icons/*.svg"
-      ],
-      "matches": [
-        "<all_urls>"
-      ]
+  "browser_action": {
+    "default_icon": "icons/tab-preview 96x96.png",
+    "default_title": "Link Previewer Settings"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "link-previewer-advanced@example.com"
     }
-  ]
+  }
 }

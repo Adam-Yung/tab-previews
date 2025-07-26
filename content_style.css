@@ -1,0 +1,7 @@
+/* content_style.css */
+
+/* This class is added to the body to apply effects to the underlying page */
+body.link-preview-page-active > *:not(#link-preview-host) {
+  filter: blur(4px) brightness(0.7);
+  transition: filter 0.3s ease-in-out;
+}

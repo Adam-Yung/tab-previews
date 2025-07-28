@@ -1,0 +1,71 @@
+:host {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 2147483647; pointer-events: none;
+}
+#link-preview-click-interceptor {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: auto;
+}
+#link-preview-container {
+    position: absolute; top: 50%; left: 50%; width: 90vw; height: 90vh;
+    border-radius: 15px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    display: flex; flex-direction: column; overflow: hidden;
+    pointer-events: auto;
+    backdrop-filter: blur(12px) saturate(150%);
+    -webkit-backdrop-filter: blur(12px) saturate(150%);
+    animation: fadeIn 0.3s forwards cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes fadeIn {
+    from { transform: translate(-50%, -50%) scale(0.95); opacity: 0; }
+    to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+@keyframes fadeOut {
+    from { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    to { transform: translate(-50%, -50%) scale(0.95); opacity: 0; }
+}
+#link-preview-container.light {
+    background: rgba(255, 255, 255, 0.5);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+#link-preview-container.dark {
+    background: rgba(30, 30, 30, 0.5);
+    color: #f1f1f1;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+}
+#link-preview-address-bar {
+    display: flex; align-items: center; padding: 6px 15px; /* Slimmer padding */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 13px; flex-shrink: 0;
+}
+#link-preview-container.light #link-preview-address-bar {
+    background: rgba(255, 255, 255, 0.4); /* More transparent */
+    color: #111;
+}
+#link-preview-container.dark #link-preview-address-bar {
+    background: rgba(0, 0, 0, 0.25); /* More transparent */
+}
+.link-preview-url {
+    flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: 15px;
+}
+.link-preview-controls button {
+    background: transparent; border: none; font-size: 20px;
+    cursor: pointer; padding: 0 8px; color: inherit; opacity: 0.7; 
+    transition: opacity 0.2s, transform 0.2s;
+}
+.link-preview-controls button:hover { opacity: 1; transform: scale(1.1); }
+.loader-container {
+    position: absolute; top: 40px; left: 0; right: 0; bottom: 0;
+    display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.5);
+}
+.loader {
+    border: 5px solid #f3f3f3; border-top: 5px solid #3498db; border-radius: 50%;
+    width: 50px; height: 50px; animation: spin 1.5s linear infinite;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+#link-preview-iframe {
+    flex-grow: 1; border: none; background: #fff;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+#link-preview-container.dark #link-preview-iframe {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}

@@ -14,6 +14,10 @@
     "webRequestBlocking",
     "<all_urls>"
   ],
+  "web_accessible_resources": [
+    "options/options.html",
+    "preview_style.css"
+  ],
   "background": {
     "scripts": ["background.js"]
   },

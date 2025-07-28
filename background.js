@@ -60,6 +60,15 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
       console.log('[BACKGROUND] Clearing preview state.');
       previewingUrl = null;
       break;
+    case 'preconnect':
+      // This is a "fire-and-forget" request. We don't care about the response,
+      // only that the browser establishes a connection to the origin.
+      // Using 'HEAD' is lighter than 'GET' as it doesn't download the page body.
+      console.log(`[BACKGROUND] Pre-connecting to: ${request.url}`);
+      fetch(request.url, { method: 'HEAD', mode: 'no-cors' }).catch(() => {
+          // Ignore errors, as this is just an optimization
+      });
+      break;
   }
   // Return true is necessary for asynchronous sendResponse.
   return true;

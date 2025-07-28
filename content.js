@@ -9,6 +9,10 @@ let settings = {
   closeKey: 'Escape'
 };
 
+// Store original page styles to restore them later
+let originalBodyOverflow;
+let originalDocumentOverflow;
+
 // --- Initialization ---
 browser.storage.local.get(settings).then(loadedSettings => {
   Object.assign(settings, loadedSettings);
@@ -32,7 +36,15 @@ function createPreview(url) {
 
   console.log(`[CONTENT] Starting preview for: ${url}`);
 
-  // PERFORMANCE FIX 1: Create a cheap, high-performance overlay
+  // --- SCROLL LOCK & PERFORMANCE FIX ---
+  // Store original overflow styles
+  originalBodyOverflow = document.body.style.overflow;
+  originalDocumentOverflow = document.documentElement.style.overflow;
+  // Disable scrolling on the parent page
+  document.body.style.overflow = 'hidden';
+  document.documentElement.style.overflow = 'hidden';
+  
+  // Create a cheap, high-performance overlay
   const pageOverlay = document.createElement('div');
   pageOverlay.id = 'link-preview-page-overlay';
   Object.assign(pageOverlay.style, {
@@ -57,8 +69,9 @@ function createPreview(url) {
   }
   
   * { 
-    animation-play-state: paused !important; 
-    transition-property: none !important; 
+    animation-play-state: paused !important;
+    transition: none !important;
+    transition-property: none !important;
     transform: none !important;
     scroll-behavior: auto !important;
   }`;
@@ -120,21 +133,9 @@ function createPreview(url) {
     .then(response => {
       if (response && response.ready) {
         iframe.src = url;
-        iframe.onload = () => {
-          loader.style.display = 'none';
-          // SCROLL TRAPPING LOGIC
-          try {
-            const iframeDoc = iframe.contentDocument.documentElement;
-            iframe.contentWindow.addEventListener('wheel', e => {
-              const { scrollTop, scrollHeight, clientHeight } = iframeDoc;
-              if ((e.deltaY > 0 && Math.abs(scrollHeight - clientHeight - scrollTop) < 1) || (e.deltaY < 0 && scrollTop === 0)) {
-                e.preventDefault();
-              }
-            }, { passive: false });
-          } catch(err) {
-            console.warn("[Link Previewer] Could not attach scroll listener to iframe.");
-          }
-        };
+        // iframe.onload = () => {
+        //   loader.style.display = 'none';
+        // };
       } else {
           console.error('[CONTENT] Background script not ready.');
           closePreview();
@@ -177,7 +178,11 @@ function closePreview() {
     if (pageOverlay) pageOverlay.remove();
     if (pauseStyle) pauseStyle.remove();
     
-    document.body.style.pointerEvents = 'auto'; // Restore mouse events
+    // Restore parent page state
+    document.body.style.pointerEvents = 'auto';
+    document.body.style.overflow = originalBodyOverflow;
+    document.documentElement.style.overflow = originalDocumentOverflow;
+    
     document.removeEventListener('keydown', handleEsc);
     browser.runtime.sendMessage({ action: 'clearPreview' });
     
@@ -220,3 +225,30 @@ document.addEventListener('click', e => {
         e.stopPropagation();
     }
 }, true);
+
+
+/* For preconnecting on link hover in parent webpage */
+let hoverTimer = null;
+let lastHoveredUrl = null;
+
+document.addEventListener('mouseover', e => {
+    const link = e.target.closest('a');
+
+    if (link && link.href && link.href !== lastHoveredUrl) {
+        lastHoveredUrl = link.href;
+
+        // Wait 100ms before pre-connecting to avoid firing on accidental mouse-overs.
+        clearTimeout(hoverTimer);
+        hoverTimer = setTimeout(() => {
+            browser.runtime.sendMessage({ action: 'preconnect', url: link.href });
+        }, 100);
+    }
+});
+
+document.addEventListener('mouseout', e => {
+    const link = e.target.closest('a');
+    if (link) {
+        clearTimeout(hoverTimer);
+        lastHoveredUrl = null;
+    }
+});

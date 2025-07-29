@@ -10,10 +10,10 @@
 #link-preview-container {
   position: absolute; top: 50%; left: 50%; width: 90vw; height: 90vh;
   border-radius: 15px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  display: flex; flex-direction: column; /*overflow: hidden;*/
+  display: flex; flex-direction: column; overflow: hidden;
   pointer-events: auto;
-  backdrop-filter: blur(12px) saturate(150%);
-  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  backdrop-filter: blur(10px) saturate(150%);
+  -webkit-backdrop-filter: blur(10px) saturate(150%);
   animation: fadeIn 0.3s forwards cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform, opacity;
 }
@@ -26,11 +26,11 @@
   to { transform: translate(-50%, -50%) scale(0.95); opacity: 0; }
 }
 #link-preview-container.light {
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.4);
   border: 2px solid rgba(255, 255, 255, 0.3);
 }
 #link-preview-container.dark {
-  background: rgba(30, 30, 30, 0.5);
+  background: rgba(30, 30, 30, 0.2);
   color: #f1f1f1;
   border: 2px solid rgba(255, 255, 255, 0.1);
 }
@@ -41,14 +41,13 @@
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 13px;
   flex-shrink: 0;
-  border-radius: 15px;
 }
 #link-preview-container.light #link-preview-address-bar {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
   color: #111;
 }
 #link-preview-container.dark #link-preview-address-bar {
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(0, 0, 0, 0.05);
 }
 .link-preview-url {
   flex-grow: 1;
@@ -85,7 +84,6 @@
 
 .loader-container {
   position: absolute; top: 40px; left: 0; right: 0; bottom: 0;
-  border-radius: 15px;
   display: flex; align-items: center; justify-content: center; background: transparent;
 }
 .loader {

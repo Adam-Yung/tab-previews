@@ -25,6 +25,19 @@ browser.storage.onChanged.addListener(changes => {
   }
 });
 
+function checkForIframeReady(frame) {
+  // Get the iframe's document
+  const iframeDoc = frame.contentDocument || frame.contentWindow.document;
+
+  // Check if the document is ready ('interactive' is the key state)
+  if (iframeDoc && (iframeDoc.readyState === 'interactive' || iframeDoc.readyState === 'complete')) {
+   frame.classList.add('loaded');
+  } else {
+    // If not ready, check again on the next animation frame
+    requestAnimationFrame(() => {checkForIframeReady(frame)});
+  }
+}
+
 /**
  * Creates the preview UI and loads the content safely.
  * @param {string} url - The URL to preview.
@@ -136,11 +149,7 @@ function createPreview(url) {
         iframe.onload = () => {
           loader.style.display = 'none';
         };
-        iframe.addEventListener('load', () => {
-          // The DOM is ready!
-          console.log('Preview: First elements ready in preview popup!');
-          iframe.classList.add('loaded');
-        });
+        checkForIframeReady(iframe);
       } else {
           console.error('[CONTENT] Background script not ready.');
           closePreview();

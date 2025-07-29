@@ -133,9 +133,9 @@ function createPreview(url) {
     .then(response => {
       if (response && response.ready) {
         iframe.src = url;
-        // iframe.onload = () => {
-        //   loader.style.display = 'none';
-        // };
+        iframe.onload = () => {
+          loader.style.display = 'none';
+        };
       } else {
           console.error('[CONTENT] Background script not ready.');
           closePreview();

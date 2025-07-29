@@ -10,7 +10,7 @@
 #link-preview-container {
   position: absolute; top: 50%; left: 50%; width: 90vw; height: 90vh;
   border-radius: 15px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  display: flex; flex-direction: column; overflow: hidden;
+  display: flex; flex-direction: column; /*overflow: hidden;*/
   pointer-events: auto;
   backdrop-filter: blur(12px) saturate(150%);
   -webkit-backdrop-filter: blur(12px) saturate(150%);

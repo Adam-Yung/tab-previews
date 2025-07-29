@@ -54,8 +54,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
       previewingUrl = request.url;
       // Immediately send a response back to the content script to confirm readiness.
       sendResponse({ ready: true });
-      break;
-
+      return true;
     case 'clearPreview':
       console.log('[BACKGROUND] Clearing preview state.');
       previewingUrl = null;
@@ -70,8 +69,6 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
       });
       break;
   }
-  // Return true is necessary for asynchronous sendResponse.
-  return true;
 });
 
 // Open options page when the toolbar icon is clicked

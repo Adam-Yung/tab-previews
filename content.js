@@ -133,7 +133,7 @@ function createPreview(url) {
 
   // If position is centered, apply transform. Otherwise, don't.
   if (settings.top.includes('%') || settings.left.includes('%')) {
-      container.style.transform = 'translate(-50%, -50%)';
+      container.classList.add('is-centered');
   }
 
 
@@ -199,7 +199,7 @@ function createPreview(url) {
       container.style.height = '90vh';
       container.style.top = '50%';
       container.style.left = '50%';
-      container.style.transform = 'translate(-50%, -50%)';
+      container.classList.add('is-centered');
       browser.storage.local.set({
       width: container.style.width,
       height: container.style.height,
@@ -213,6 +213,24 @@ function createPreview(url) {
 }
 
 /**
+ * Converts percentage-based centered position to fixed pixel-based position.
+ * This is called once when a drag or resize action begins.
+ * @param {HTMLElement} element The element to convert.
+ */
+function convertToPixels(element) {
+    if (element.classList.contains('is-centered')) {
+        const rect = element.getBoundingClientRect();
+        element.style.left = `${rect.left}px`;
+        element.style.top = `${rect.top}px`;
+        element.style.width = `${rect.width}px`;
+        element.style.height = `${rect.height}px`;
+        element.classList.remove('is-centered'); // **THE FIX**: Remove class
+        element.style.animation = 'none';
+    }
+}
+
+
+/**
  * Initializes the dragging functionality for the preview window.
  * @param {MouseEvent} e - The mousedown event.
  * @param {HTMLElement} element - The element to drag.
@@ -224,13 +242,7 @@ function initDrag(e, element) {
     }
     e.preventDefault();
 
-    // If the element is centered with transform, convert to pixel values
-    if (element.style.transform) {
-        const rect = element.getBoundingClientRect();
-        element.style.left = `${rect.left}px`;
-        element.style.top = `${rect.top}px`;
-        element.style.transform = 'none';
-    }
+    convertToPixels(element);
 
     const offsetX = e.clientX - element.offsetLeft;
     const offsetY = e.clientY - element.offsetTop;
@@ -265,21 +277,13 @@ function initDrag(e, element) {
 function initResize(e, element, dir) {
     e.preventDefault();
 
-    // If the element is centered with transform, convert to pixel values
-    if (element.style.transform) {
-        const rect = element.getBoundingClientRect();
-        element.style.left = `${rect.left}px`;
-        element.style.top = `${rect.top}px`;
-        element.style.width = `${rect.width}px`;
-        element.style.height = `${rect.height}px`;
-        element.style.transform = 'none';
-    }
+    convertToPixels(element);
 
 
     const startX = e.clientX;
     const startY = e.clientY;
-    const startWidth = parseInt(document.defaultView.getComputedStyle(element).width, 10);
-    const startHeight = parseInt(document.defaultView.getComputedStyle(element).height, 10);
+    const startWidth = element.offsetWidth;
+    const startHeight = element.offsetHeight;
     const startLeft = element.offsetLeft;
     const startTop = element.offsetTop;
 
@@ -341,8 +345,6 @@ function closePreview() {
   if (previewHost) {
     const container = previewHost.shadowRoot.getElementById('link-preview-container');
     if (container) {
-        // Clear transform before animating fadeOut to avoid jumpiness
-        container.style.transform = 'none';
         container.style.animation = 'fadeOut 0.2s forwards ease-out';
     }
   }

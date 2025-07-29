@@ -20,9 +20,21 @@
   animation: fadeIn 0.3s forwards cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform, opacity;
 }
+
+/* **THE FIX**: New rule for the centered state */
+#link-preview-container.is-centered {
+  transform: translate(-50%, -50%);
+  /* Apply the centered animation instead */
+  animation-name: fadeInCenter;
+}
+
 @keyframes fadeIn {
-  from { transform: inherit; opacity: 0; }
-  to { transform: inherit; opacity: 1; }
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+@keyframes fadeInCenter {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
 @keyframes fadeOut {
   from {opacity: 1; }

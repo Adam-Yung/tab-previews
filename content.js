@@ -8,7 +8,10 @@ let settings = {
   theme: 'light',
   closeKey: 'Escape',
   width: '90vw',
-  height: '90vh'
+  height: '90vh',
+  // New settings for position
+  top: '50%',
+  left: '50%'
 };
 
 // Store original page styles to restore them later
@@ -122,9 +125,17 @@ function createPreview(url) {
   container.id = 'link-preview-container';
   container.classList.add(settings.theme);
 
-  // Apply saved dimensions
+  // Apply saved dimensions and position
   container.style.width = settings.width;
   container.style.height = settings.height;
+  container.style.top = settings.top;
+  container.style.left = settings.left;
+
+  // If position is centered, apply transform. Otherwise, don't.
+  if (settings.top.includes('%') || settings.left.includes('%')) {
+      container.style.transform = 'translate(-50%, -50%)';
+  }
+
 
   shadowRoot.appendChild(container);
 
@@ -133,12 +144,15 @@ function createPreview(url) {
   addressBar.innerHTML = `
     <span class="link-preview-url">${url}</span>
     <div class="link-preview-controls">
-      <button id="link-preview-restore" title="Restore default size">⟲</button>
+      <button id="link-preview-restore" title="Restore default size and position">&#x26F6;</button>
       <button id="link-preview-enlarge" title="Open in new tab">↗</button>
       <button id="link-preview-close" title="Close preview">×</button>
     </div>
   `;
   container.appendChild(addressBar);
+  // Add dragging functionality to the address bar
+  addressBar.addEventListener('mousedown', (e) => initDrag(e, container));
+
 
   const loader = document.createElement('div');
   loader.className = 'loader-container';
@@ -181,16 +195,66 @@ function createPreview(url) {
     closePreview();
   });
   shadowRoot.getElementById('link-preview-restore').addEventListener('click', () => {
-    container.style.width = '90vw';
-    container.style.height = '90vh';
-    browser.storage.local.set({
+      container.style.width = '90vw';
+      container.style.height = '90vh';
+      container.style.top = '50%';
+      container.style.left = '50%';
+      container.style.transform = 'translate(-50%, -50%)';
+      browser.storage.local.set({
       width: container.style.width,
-      height: container.style.height
+      height: container.style.height,
+      top: container.style.top,
+      left: container.style.left
     });
+
   });
   clickInterceptor.addEventListener('click', closePreview);
   document.addEventListener('keydown', handleEsc);
 }
+
+/**
+ * Initializes the dragging functionality for the preview window.
+ * @param {MouseEvent} e - The mousedown event.
+ * @param {HTMLElement} element - The element to drag.
+ */
+function initDrag(e, element) {
+    // Only drag with the primary mouse button, and not on controls
+    if (e.button !== 0 || e.target.closest('button')) {
+        return;
+    }
+    e.preventDefault();
+
+    // If the element is centered with transform, convert to pixel values
+    if (element.style.transform) {
+        const rect = element.getBoundingClientRect();
+        element.style.left = `${rect.left}px`;
+        element.style.top = `${rect.top}px`;
+        element.style.transform = 'none';
+    }
+
+    const offsetX = e.clientX - element.offsetLeft;
+    const offsetY = e.clientY - element.offsetTop;
+
+    function doDrag(e) {
+        element.style.left = `${e.clientX - offsetX}px`;
+        element.style.top = `${e.clientY - offsetY}px`;
+    }
+
+    function stopDrag() {
+        document.documentElement.removeEventListener('mousemove', doDrag, false);
+        document.documentElement.removeEventListener('mouseup', stopDrag, false);
+
+        // Save the new position
+        browser.storage.local.set({
+            top: element.style.top,
+            left: element.style.left
+        });
+    }
+
+    document.documentElement.addEventListener('mousemove', doDrag, false);
+    document.documentElement.addEventListener('mouseup', stopDrag, false);
+}
+
 
 /**
  * Initializes the resize functionality.
@@ -200,40 +264,62 @@ function createPreview(url) {
  */
 function initResize(e, element, dir) {
     e.preventDefault();
+
+    // If the element is centered with transform, convert to pixel values
+    if (element.style.transform) {
+        const rect = element.getBoundingClientRect();
+        element.style.left = `${rect.left}px`;
+        element.style.top = `${rect.top}px`;
+        element.style.width = `${rect.width}px`;
+        element.style.height = `${rect.height}px`;
+        element.style.transform = 'none';
+    }
+
+
     const startX = e.clientX;
     const startY = e.clientY;
     const startWidth = parseInt(document.defaultView.getComputedStyle(element).width, 10);
     const startHeight = parseInt(document.defaultView.getComputedStyle(element).height, 10);
+    const startLeft = element.offsetLeft;
+    const startTop = element.offsetTop;
 
     function doDrag(e) {
         let newWidth = startWidth;
         let newHeight = startHeight;
+        let newLeft = startLeft;
+        let newTop = startTop;
 
         if (dir.includes('e')) {
             newWidth = startWidth + e.clientX - startX;
         }
         if (dir.includes('w')) {
             newWidth = startWidth - (e.clientX - startX);
+            newLeft = startLeft + e.clientX - startX;
         }
         if (dir.includes('s')) {
             newHeight = startHeight + e.clientY - startY;
         }
         if (dir.includes('n')) {
             newHeight = startHeight - (e.clientY - startY);
+            newTop = startTop + e.clientY - startY;
         }
 
         element.style.width = `${newWidth}px`;
         element.style.height = `${newHeight}px`;
+        element.style.left = `${newLeft}px`;
+        element.style.top = `${newTop}px`;
     }
 
     function stopDrag() {
         document.documentElement.removeEventListener('mousemove', doDrag, false);
         document.documentElement.removeEventListener('mouseup', stopDrag, false);
 
-        // Save the new dimensions
+        // Save the new dimensions and position
         browser.storage.local.set({
             width: element.style.width,
-            height: element.style.height
+            height: element.style.height,
+            top: element.style.top,
+            left: element.style.left
         });
     }
 
@@ -255,6 +341,8 @@ function closePreview() {
   if (previewHost) {
     const container = previewHost.shadowRoot.getElementById('link-preview-container');
     if (container) {
+        // Clear transform before animating fadeOut to avoid jumpiness
+        container.style.transform = 'none';
         container.style.animation = 'fadeOut 0.2s forwards ease-out';
     }
   }

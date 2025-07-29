@@ -136,6 +136,11 @@ function createPreview(url) {
         iframe.onload = () => {
           loader.style.display = 'none';
         };
+        iframe.addEventListener('load', () => {
+          // The DOM is ready!
+          console.log('Preview: First elements ready in preview popup!');
+          iframe.classList.add('loaded');
+        });
       } else {
           console.error('[CONTENT] Background script not ready.');
           closePreview();

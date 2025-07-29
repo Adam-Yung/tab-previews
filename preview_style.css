@@ -38,13 +38,13 @@
   to {opacity: 0; }
 }
 #link-preview-container.light {
-  background: rgba(255, 255, 255, 0.6);
-  border: 2px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.45);
+  border: 2px solid rgba(255, 255, 255, 0.3);
 }
 #link-preview-container.dark {
-  background: rgba(30, 30, 30, 0.4);
+  background: rgba(30, 30, 30, 0.3);
   color: #f1f1f1;
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.15);
 }
 #link-preview-container iframe {
   border-radius: 0 0 var(--preview-border-radius) var(--preview-border-radius); /* Match the parent's border-radius */
@@ -56,20 +56,21 @@
   display: flex;
   align-items: center;
   padding: 6px 15px;
+  border-radius: var(--preview-border-radius) var(--preview-border-radius) 0 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 13px;
   flex-shrink: 0;
-  /* backdrop-filter: blur(10px) saturate(150%);
-  -webkit-backdrop-filter: blur(10px) saturate(150%); */
+  backdrop-filter: blur(5px) saturate(150%);
+  -webkit-backdrop-filter: blur(5px) saturate(150%);
   cursor: move; /* Make it obvious the bar is draggable */
 }
 #link-preview-container.light #link-preview-address-bar {
-  background: rgba(255, 255, 255, 0.1);
+  /* background: rgba(255, 255, 255, 0.05); */
   color: #111;
 }
-#link-preview-container.dark #link-preview-address-bar {
-  background: rgba(0, 0, 0, 0.1);
-}
+/* #link-preview-container.dark #link-preview-address-bar {
+  background: rgba(0, 0, 0, 0.05);
+} */
 .link-preview-url {
   flex-grow: 1;
   white-space: nowrap;

@@ -4,7 +4,6 @@
   <title>Link Previewer Settings</title>
   <link rel="stylesheet" href="options.css">
 </head>
-<!-- The theme class will be applied here by JS -->
 <body>
   <div class="container">
     <header>
@@ -39,6 +38,16 @@
         <label for="closeKey">Close Preview Key</label>
         <p class="description">The key to press to close the preview window.</p>
         <input type="text" id="closeKey" name="closeKey" maxlength="20" placeholder="e.g., Escape">
+      </div>
+      <div class="form-group">
+        <label for="width">Default Width</label>
+        <p class="description">The default width of the preview window (e.g., 800px, 90vw).</p>
+        <input type="text" id="width" name="width">
+      </div>
+      <div class="form-group">
+        <label for="height">Default Height</label>
+        <p class="description">The default height of the preview window (e.g., 600px, 90vh).</p>
+        <input type="text" id="height" name="height">
       </div>
       <button type="submit" id="save-button">Save Settings</button>
       <div id="save-status"></div>

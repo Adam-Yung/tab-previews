@@ -11,7 +11,9 @@ const defaults = {
     duration: 500,
     modifier: 'shiftKey',
     theme: 'light',
-    closeKey: 'Escape'
+    closeKey: 'Escape',
+    width: '90vw',
+    height: '90vh'
 };
 
 /**
@@ -33,16 +35,18 @@ function saveOptions(e) {
     duration: document.getElementById('duration').value,
     modifier: document.getElementById('modifier').value,
     theme: themeToggle.checked ? 'dark' : 'light',
-    closeKey: document.getElementById('closeKey').value || 'Escape' // Default to Escape if empty
+    closeKey: document.getElementById('closeKey').value || 'Escape', // Default to Escape if empty
+    width: document.getElementById('width').value,
+    height: document.getElementById('height').value
   };
 
   browser.storage.local.set(settings).then(() => {
     statusDiv.textContent = 'Settings Saved!';
     statusDiv.style.color = 'var(--success-color)';
     saveButton.textContent = 'Saved!';
-    
-    setTimeout(() => { 
-        statusDiv.textContent = ''; 
+
+    setTimeout(() => {
+        statusDiv.textContent = '';
         saveButton.textContent = 'Save Settings';
     }, 2000);
   }, (error) => {
@@ -59,6 +63,8 @@ function restoreOptions() {
     document.getElementById('duration').value = items.duration;
     document.getElementById('modifier').value = items.modifier;
     document.getElementById('closeKey').value = items.closeKey;
+    document.getElementById('width').value = items.width;
+    document.getElementById('height').value = items.height;
     applyTheme(items.theme);
   });
 }

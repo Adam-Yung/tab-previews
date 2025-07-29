@@ -6,7 +6,9 @@ let settings = {
   duration: 500,
   modifier: 'shiftKey',
   theme: 'light',
-  closeKey: 'Escape'
+  closeKey: 'Escape',
+  width: '90vw',
+  height: '90vh'
 };
 
 // Store original page styles to restore them later
@@ -56,7 +58,7 @@ function createPreview(url) {
   // Disable scrolling on the parent page
   document.body.style.overflow = 'hidden';
   document.documentElement.style.overflow = 'hidden';
-  
+
   // Create a cheap, high-performance overlay
   const pageOverlay = document.createElement('div');
   pageOverlay.id = 'link-preview-page-overlay';
@@ -80,8 +82,8 @@ function createPreview(url) {
   img[src$=".gif"] {
       visibility: hidden !important;
   }
-  
-  * { 
+
+  * {
     animation-play-state: paused !important;
     transition: none !important;
     transition-property: none !important;
@@ -89,7 +91,7 @@ function createPreview(url) {
     scroll-behavior: auto !important;
   }`;
   document.head.appendChild(pauseStyle);
-  
+
   // PERFORMANCE FIX 3: Disable mouse events on the background page
   document.body.style.pointerEvents = 'none';
 
@@ -98,12 +100,12 @@ function createPreview(url) {
   previewHost.id = 'link-preview-host';
   previewHost.style.pointerEvents = 'auto'; // Re-enable pointer events for our UI
   document.body.appendChild(previewHost);
-  
+
   // Fade in the overlay
   requestAnimationFrame(() => {
     pageOverlay.style.opacity = '1';
   });
-  
+
   const shadowRoot = previewHost.attachShadow({ mode: 'open' });
 
   // Create the UI elements
@@ -119,6 +121,11 @@ function createPreview(url) {
   const container = document.createElement('div');
   container.id = 'link-preview-container';
   container.classList.add(settings.theme);
+
+  // Apply saved dimensions
+  container.style.width = settings.width;
+  container.style.height = settings.height;
+
   shadowRoot.appendChild(container);
 
   const addressBar = document.createElement('div');
@@ -126,12 +133,13 @@ function createPreview(url) {
   addressBar.innerHTML = `
     <span class="link-preview-url">${url}</span>
     <div class="link-preview-controls">
+      <button id="link-preview-restore" title="Restore default size">⟲</button>
       <button id="link-preview-enlarge" title="Open in new tab">↗</button>
       <button id="link-preview-close" title="Close preview">×</button>
     </div>
   `;
   container.appendChild(addressBar);
-  
+
   const loader = document.createElement('div');
   loader.className = 'loader-container';
   loader.innerHTML = `<div class="loader"></div>`;
@@ -140,6 +148,16 @@ function createPreview(url) {
   const iframe = document.createElement('iframe');
   iframe.id = 'link-preview-iframe';
   container.appendChild(iframe);
+
+  // Add resize handles
+  const resizeHandles = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
+  resizeHandles.forEach(dir => {
+      const handle = document.createElement('div');
+      handle.className = `resize-handle ${dir}`;
+      container.appendChild(handle);
+      handle.addEventListener('mousedown', (e) => initResize(e, container, dir));
+  });
+
 
   // Ask background script to get ready for the network request
   browser.runtime.sendMessage({ action: 'prepareToPreview', url: url })
@@ -162,20 +180,78 @@ function createPreview(url) {
     window.open(url, '_blank');
     closePreview();
   });
+  shadowRoot.getElementById('link-preview-restore').addEventListener('click', () => {
+    container.style.width = '90vw';
+    container.style.height = '90vh';
+    browser.storage.local.set({
+      width: container.style.width,
+      height: container.style.height
+    });
+  });
   clickInterceptor.addEventListener('click', closePreview);
   document.addEventListener('keydown', handleEsc);
 }
+
+/**
+ * Initializes the resize functionality.
+ * @param {MouseEvent} e - The mousedown event.
+ * @param {HTMLElement} element - The element to resize.
+ * @param {string} dir - The direction of the resize.
+ */
+function initResize(e, element, dir) {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidth = parseInt(document.defaultView.getComputedStyle(element).width, 10);
+    const startHeight = parseInt(document.defaultView.getComputedStyle(element).height, 10);
+
+    function doDrag(e) {
+        let newWidth = startWidth;
+        let newHeight = startHeight;
+
+        if (dir.includes('e')) {
+            newWidth = startWidth + e.clientX - startX;
+        }
+        if (dir.includes('w')) {
+            newWidth = startWidth - (e.clientX - startX);
+        }
+        if (dir.includes('s')) {
+            newHeight = startHeight + e.clientY - startY;
+        }
+        if (dir.includes('n')) {
+            newHeight = startHeight - (e.clientY - startY);
+        }
+
+        element.style.width = `${newWidth}px`;
+        element.style.height = `${newHeight}px`;
+    }
+
+    function stopDrag() {
+        document.documentElement.removeEventListener('mousemove', doDrag, false);
+        document.documentElement.removeEventListener('mouseup', stopDrag, false);
+
+        // Save the new dimensions
+        browser.storage.local.set({
+            width: element.style.width,
+            height: element.style.height
+        });
+    }
+
+    document.documentElement.addEventListener('mousemove', doDrag, false);
+    document.documentElement.addEventListener('mouseup', stopDrag, false);
+}
+
 
 /**
  * Closes and cleans up the preview window.
  */
 function closePreview() {
   if (!isPreviewing) return;
-  
+
   const previewHost = document.getElementById('link-preview-host');
   const pageOverlay = document.getElementById('link-preview-page-overlay');
   const pauseStyle = document.getElementById('link-preview-animation-pauzer');
-  
+
   if (previewHost) {
     const container = previewHost.shadowRoot.getElementById('link-preview-container');
     if (container) {
@@ -186,20 +262,20 @@ function closePreview() {
   if (pageOverlay) {
     pageOverlay.style.opacity = '0';
   }
-  
+
   setTimeout(() => {
     if (previewHost) previewHost.remove();
     if (pageOverlay) pageOverlay.remove();
     if (pauseStyle) pauseStyle.remove();
-    
+
     // Restore parent page state
     document.body.style.pointerEvents = 'auto';
     document.body.style.overflow = originalBodyOverflow;
     document.documentElement.style.overflow = originalDocumentOverflow;
-    
+
     document.removeEventListener('keydown', handleEsc);
     browser.runtime.sendMessage({ action: 'clearPreview' });
-    
+
     isPreviewing = false;
     console.log('[CONTENT] Preview closed and cleaned up.');
   }, 200); // Wait for animations to finish

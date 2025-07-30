@@ -36,10 +36,11 @@ function checkForIframeReady(frame) {
 
   // Check if the document is ready ('interactive' is the key state)
   if (iframeDoc && (iframeDoc.readyState === 'interactive' || iframeDoc.readyState === 'complete')) {
-   frame.classList.add('loaded');
+    console.log('[CONTENT] Iframe is interactive, hiding loader.');
+    frame.classList.add('loaded');
   } else {
     // If not ready, check again on the next animation frame
-    requestAnimationFrame(() => {checkForIframeReady(frame)});
+    requestAnimationFrame(() => { checkForIframeReady(frame) });
   }
 }
 
@@ -79,7 +80,7 @@ function createPreview(url) {
   document.body.appendChild(pageOverlay);
 
   // PERFORMANCE FIX 2: Pause all animations/transitions on the parent page
- const pauseStyle = document.createElement('style');
+  const pauseStyle = document.createElement('style');
   pauseStyle.id = 'link-preview-animation-pauzer';
   pauseStyle.innerHTML = `
   img[src$=".gif"] {
@@ -133,7 +134,7 @@ function createPreview(url) {
 
   // If position is centered, apply transform. Otherwise, don't.
   if (settings.top.includes('%') || settings.left.includes('%')) {
-      container.classList.add('is-centered');
+    container.classList.add('is-centered');
   }
 
 
@@ -150,9 +151,6 @@ function createPreview(url) {
     </div>
   `;
   container.appendChild(addressBar);
-  // Add dragging functionality to the address bar
-  addressBar.addEventListener('mousedown', (e) => initDrag(e, container));
-
 
   const loader = document.createElement('div');
   loader.className = 'loader-container';
@@ -163,13 +161,16 @@ function createPreview(url) {
   iframe.id = 'link-preview-iframe';
   container.appendChild(iframe);
 
+  // Add dragging functionality to the address bar
+  addressBar.addEventListener('mousedown', (e) => initDrag(e, container, iframe));
+
   // Add resize handles
   const resizeHandles = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
   resizeHandles.forEach(dir => {
-      const handle = document.createElement('div');
-      handle.className = `resize-handle ${dir}`;
-      container.appendChild(handle);
-      handle.addEventListener('mousedown', (e) => initResize(e, container, dir));
+    const handle = document.createElement('div');
+    handle.className = `resize-handle ${dir}`;
+    container.appendChild(handle);
+    handle.addEventListener('mousedown', (e) => initResize(e, container, iframe, dir));
   });
 
 
@@ -183,8 +184,8 @@ function createPreview(url) {
         };
         checkForIframeReady(iframe);
       } else {
-          console.error('[CONTENT] Background script not ready.');
-          closePreview();
+        console.error('[CONTENT] Background script not ready.');
+        closePreview();
       }
     });
 
@@ -195,12 +196,12 @@ function createPreview(url) {
     closePreview();
   });
   shadowRoot.getElementById('link-preview-restore').addEventListener('click', () => {
-      container.style.width = '90vw';
-      container.style.height = '90vh';
-      container.style.top = '50%';
-      container.style.left = '50%';
-      container.classList.add('is-centered');
-      browser.storage.local.set({
+    container.style.width = '90vw';
+    container.style.height = '90vh';
+    container.style.top = '50%';
+    container.style.left = '50%';
+    container.classList.add('is-centered');
+    browser.storage.local.set({
       width: container.style.width,
       height: container.style.height,
       top: container.style.top,
@@ -218,15 +219,15 @@ function createPreview(url) {
  * @param {HTMLElement} element The element to convert.
  */
 function convertToPixels(element) {
-    if (element.classList.contains('is-centered')) {
-        const rect = element.getBoundingClientRect();
-        element.style.left = `${rect.left}px`;
-        element.style.top = `${rect.top}px`;
-        element.style.width = `${rect.width}px`;
-        element.style.height = `${rect.height}px`;
-        element.classList.remove('is-centered'); // **THE FIX**: Remove class
-        element.style.animation = 'none';
-    }
+  if (element.classList.contains('is-centered')) {
+    const rect = element.getBoundingClientRect();
+    element.style.left = `${rect.left}px`;
+    element.style.top = `${rect.top}px`;
+    element.style.width = `${rect.width}px`;
+    element.style.height = `${rect.height}px`;
+    element.classList.remove('is-centered'); // **THE FIX**: Remove class
+    element.style.animation = 'none';
+  }
 }
 
 
@@ -235,36 +236,40 @@ function convertToPixels(element) {
  * @param {MouseEvent} e - The mousedown event.
  * @param {HTMLElement} element - The element to drag.
  */
-function initDrag(e, element) {
-    // Only drag with the primary mouse button, and not on controls
-    if (e.button !== 0 || e.target.closest('button')) {
-        return;
-    }
-    e.preventDefault();
+function initDrag(e, element, iframe) {
+  // Only drag with the primary mouse button, and not on controls
+  if (e.button !== 0 || e.target.closest('button')) {
+    return;
+  }
+  e.preventDefault();
 
-    convertToPixels(element);
+  convertToPixels(element);
 
-    const offsetX = e.clientX - element.offsetLeft;
-    const offsetY = e.clientY - element.offsetTop;
+  const offsetX = e.clientX - element.offsetLeft;
+  const offsetY = e.clientY - element.offsetTop;
 
-    function doDrag(e) {
-        element.style.left = `${e.clientX - offsetX}px`;
-        element.style.top = `${e.clientY - offsetY}px`;
-    }
+  // Disable pointer events on the iframe while dragging
+  iframe.style.pointerEvents = 'none';
 
-    function stopDrag() {
-        document.documentElement.removeEventListener('mousemove', doDrag, false);
-        document.documentElement.removeEventListener('mouseup', stopDrag, false);
+  function doDrag(e) {
+    element.style.left = `${e.clientX - offsetX}px`;
+    element.style.top = `${e.clientY - offsetY}px`;
+  }
 
-        // Save the new position
-        browser.storage.local.set({
-            top: element.style.top,
-            left: element.style.left
-        });
-    }
+  function stopDrag() {
+    iframe.style.pointerEvents = 'auto';
+    document.documentElement.removeEventListener('mousemove', doDrag, false);
+    document.documentElement.removeEventListener('mouseup', stopDrag, false);
 
-    document.documentElement.addEventListener('mousemove', doDrag, false);
-    document.documentElement.addEventListener('mouseup', stopDrag, false);
+    // Save the new position
+    browser.storage.local.set({
+      top: element.style.top,
+      left: element.style.left
+    });
+  }
+
+  document.documentElement.addEventListener('mousemove', doDrag, false);
+  document.documentElement.addEventListener('mouseup', stopDrag, false);
 }
 
 
@@ -274,61 +279,65 @@ function initDrag(e, element) {
  * @param {HTMLElement} element - The element to resize.
  * @param {string} dir - The direction of the resize.
  */
-function initResize(e, element, dir) {
-    e.preventDefault();
+function initResize(e, element, iframe, dir) {
+  e.preventDefault();
 
-    convertToPixels(element);
+  convertToPixels(element);
 
+  // Disable pointer events on the iframe while resizing
+  iframe.style.pointerEvents = 'none';
 
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const startWidth = element.offsetWidth;
-    const startHeight = element.offsetHeight;
-    const startLeft = element.offsetLeft;
-    const startTop = element.offsetTop;
+  const startX = e.clientX;
+  const startY = e.clientY;
+  const startWidth = element.offsetWidth;
+  const startHeight = element.offsetHeight;
+  const startLeft = element.offsetLeft;
+  const startTop = element.offsetTop;
 
-    function doDrag(e) {
-        let newWidth = startWidth;
-        let newHeight = startHeight;
-        let newLeft = startLeft;
-        let newTop = startTop;
+  function doDrag(e) {
+    let newWidth = startWidth;
+    let newHeight = startHeight;
+    let newLeft = startLeft;
+    let newTop = startTop;
 
-        if (dir.includes('e')) {
-            newWidth = startWidth + e.clientX - startX;
-        }
-        if (dir.includes('w')) {
-            newWidth = startWidth - (e.clientX - startX);
-            newLeft = startLeft + e.clientX - startX;
-        }
-        if (dir.includes('s')) {
-            newHeight = startHeight + e.clientY - startY;
-        }
-        if (dir.includes('n')) {
-            newHeight = startHeight - (e.clientY - startY);
-            newTop = startTop + e.clientY - startY;
-        }
-
-        element.style.width = `${newWidth}px`;
-        element.style.height = `${newHeight}px`;
-        element.style.left = `${newLeft}px`;
-        element.style.top = `${newTop}px`;
+    if (dir.includes('e')) {
+      newWidth = startWidth + e.clientX - startX;
+    }
+    if (dir.includes('w')) {
+      newWidth = startWidth - (e.clientX - startX);
+      newLeft = startLeft + e.clientX - startX;
+    }
+    if (dir.includes('s')) {
+      newHeight = startHeight + e.clientY - startY;
+    }
+    if (dir.includes('n')) {
+      newHeight = startHeight - (e.clientY - startY);
+      newTop = startTop + e.clientY - startY;
     }
 
-    function stopDrag() {
-        document.documentElement.removeEventListener('mousemove', doDrag, false);
-        document.documentElement.removeEventListener('mouseup', stopDrag, false);
+    element.style.width = `${newWidth}px`;
+    element.style.height = `${newHeight}px`;
+    element.style.left = `${newLeft}px`;
+    element.style.top = `${newTop}px`;
+  }
 
-        // Save the new dimensions and position
-        browser.storage.local.set({
-            width: element.style.width,
-            height: element.style.height,
-            top: element.style.top,
-            left: element.style.left
-        });
-    }
+  function stopDrag() {
+    iframe.style.pointerEvents = 'auto';
 
-    document.documentElement.addEventListener('mousemove', doDrag, false);
-    document.documentElement.addEventListener('mouseup', stopDrag, false);
+    document.documentElement.removeEventListener('mousemove', doDrag, false);
+    document.documentElement.removeEventListener('mouseup', stopDrag, false);
+
+
+    // Save the new dimensions and position
+    browser.storage.local.set({
+      width: element.style.width,
+      height: element.style.height,
+      top: element.style.top,
+      left: element.style.left
+    });
+  }
+  document.documentElement.addEventListener('mousemove', doDrag, false);
+  document.documentElement.addEventListener('mouseup', stopDrag, false);
 }
 
 
@@ -345,7 +354,7 @@ function closePreview() {
   if (previewHost) {
     const container = previewHost.shadowRoot.getElementById('link-preview-container');
     if (container) {
-        container.style.animation = 'fadeOut 0.2s forwards ease-out';
+      container.style.animation = 'fadeOut 0.2s forwards ease-out';
     }
   }
 
@@ -399,11 +408,11 @@ document.addEventListener('mouseup', () => {
 }, true);
 
 document.addEventListener('click', e => {
-    const link = e.target.closest('a');
-    if (link && e[settings.modifier]) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
+  const link = e.target.closest('a');
+  if (link && e[settings.modifier]) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
 }, true);
 
 
@@ -412,23 +421,23 @@ let hoverTimer = null;
 let lastHoveredUrl = null;
 
 document.addEventListener('mouseover', e => {
-    const link = e.target.closest('a');
+  const link = e.target.closest('a');
 
-    if (link && link.href && link.href !== lastHoveredUrl) {
-        lastHoveredUrl = link.href;
+  if (link && link.href && link.href !== lastHoveredUrl) {
+    lastHoveredUrl = link.href;
 
-        // Wait 100ms before pre-connecting to avoid firing on accidental mouse-overs.
-        clearTimeout(hoverTimer);
-        hoverTimer = setTimeout(() => {
-            browser.runtime.sendMessage({ action: 'preconnect', url: link.href });
-        }, 100);
-    }
+    // Wait 100ms before pre-connecting to avoid firing on accidental mouse-overs.
+    clearTimeout(hoverTimer);
+    hoverTimer = setTimeout(() => {
+      browser.runtime.sendMessage({ action: 'preconnect', url: link.href });
+    }, 100);
+  }
 });
 
 document.addEventListener('mouseout', e => {
-    const link = e.target.closest('a');
-    if (link) {
-        clearTimeout(hoverTimer);
-        lastHoveredUrl = null;
-    }
+  const link = e.target.closest('a');
+  if (link) {
+    clearTimeout(hoverTimer);
+    lastHoveredUrl = null;
+  }
 });

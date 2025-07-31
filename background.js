@@ -1,74 +1,102 @@
 // background.js
 
-/**
- * @type {string|null}
- * Holds the URL of the page currently being previewed. This is used as a flag
- * to determine if a preview is active, which tells the onHeadersReceived
- * listener whether to modify headers.
- */
+const DEBUG = true;
+function debug(msg) {
+  if (DEBUG)
+    console.log(msg);
+}
+
 let previewingUrl = null;
 
-/**
- * Intercepts network requests and removes security headers from responses
- * for sub_frame requests made by the preview iframe. This allows embedding
- * sites that would otherwise block it via X-Frame-Options or CSP.
- * @param {object} details - Details about the network request.
- * @returns {object} The modified headers or original headers.
- */
-function headersListener(details) {
-  // Only modify headers for sub_frame requests when a preview is active.
-  if (details.type === 'sub_frame' && previewingUrl) {
-    console.log(`[BACKGROUND] Intercepting headers for: ${details.url}`);
+function requestHeadersListener(details) {
+  // We only want to modify requests initiated by our own extension
+  if (details.initiator === browser.runtime.id || details.originUrl?.startsWith(browser.runtime.getURL(""))) {
+    const targetOrigin = new URL(details.url).origin;
 
+    let originHeader = details.requestHeaders.find(h => h.name.toLowerCase() === 'origin');
+    if (originHeader) {
+      // Spoof the origin to make it look like a same-origin request
+      originHeader.value = targetOrigin;
+    } else {
+      // Add the origin header if it doesn't exist
+      details.requestHeaders.push({ name: 'Origin', value: targetOrigin });
+    }
+    
+    // Also spoof the Referer for good measure
+     details.requestHeaders.push({ name: 'Referer', value: details.url });
+
+    debug(`[BACKGROUND] Spoofed the header request to use appear as same origin: ${details.url}`);
+    return { requestHeaders: details.requestHeaders };
+  }
+  return { requestHeaders: details.requestHeaders };
+}
+
+
+// --- Listener to modify response headers ---
+function responseHeadersListener(details) {
+  const isPreviewFrame = details.type === 'sub_frame' && previewingUrl;
+  const isPreconnectRequest = details.type === 'xhr' || details.type === 'xmlhttprequest';
+
+  if (isPreviewFrame || isPreconnectRequest) {
     const newHeaders = details.responseHeaders.filter(header => {
       const headerName = header.name.toLowerCase();
-      // Strip headers that prevent the page from being iframed.
+      debug(`[BACKGROUND] Cleaned the response header for iframe display: ${previewingUrl}`);
       return !(
         headerName === 'content-security-policy' ||
         headerName === 'x-frame-options' ||
-        headerName === 'x-content-type-options'
+        headerName === 'x-content-type-options' ||
+        headerName === 'cross-origin-embedder-policy' ||
+        headerName === 'cross-origin-opener-policy' ||
+        headerName === 'cross-origin-resource-policy' ||
+        headerName === 'referrer-policy'
       );
     });
-
     return { responseHeaders: newHeaders };
   }
-  // Return original headers for all other requests.
   return { responseHeaders: details.responseHeaders };
 }
 
-// Register the webRequest listener to intercept sub_frame responses.
+// --- Register all listeners ---
+// NEW: Register the request header listener
+browser.webRequest.onBeforeSendHeaders.addListener(
+  requestHeadersListener,
+  { urls: ["<all_urls>"], types: ["xmlhttprequest"] },
+  ["blocking", "requestHeaders"]
+);
+
+// Register the response header listener
 browser.webRequest.onHeadersReceived.addListener(
-  headersListener,
-  { urls: ["<all_urls>"], types: ["sub_frame"] },
+  responseHeadersListener,
+  { urls: ["<all_urls>"], types: ["sub_frame", "xhr", "xmlhttprequest"] },
   ["blocking", "responseHeaders"]
 );
 
-/**
- * Handles messages from other parts of the extension, like content scripts.
- */
+
+// --- Message handling from content scripts ---
 browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
   switch (request.action) {
-    // Sent by the content script right before creating the iframe.
-    // This sets the `previewingUrl` flag to enable the header stripping logic.
     case 'prepareToPreview':
-      console.log(`[BACKGROUND] Preparing to preview: ${request.url}`);
+      debug(`[BACKGROUND] Preparing for preview: ${request.url}`);
       previewingUrl = request.url;
       sendResponse({ ready: true });
-      return true; // Indicates an async response.
+      return true;
 
-    // Sent by the content script when the preview is closed.
     case 'clearPreview':
-      console.log('[BACKGROUND] Clearing preview state.');
       previewingUrl = null;
       break;
 
-    // Pre-connects to a URL on hover for a potential speed-up.
     case 'preconnect':
-      // This is an optimization, so we fire and forget.
-      // 'HEAD' is used as it's lighter than a full 'GET'.
-      fetch(request.url, { method: 'HEAD', mode: 'no-cors' }).catch(() => {
-          // Ignore errors, this is not a critical function.
+      const controller = new AbortController();
+      const signal = controller.signal;
+      debug(`[BACKGROUND] Preconnecting to: ${request.url}`);
+      // Use GET as it's more widely supported than HEAD
+      fetch(request.url, { method: 'GET', mode: 'cors', signal }).catch(() => {
+          // Errors are expected as we abort the request. This is fine.
       });
+
+      // Abort the request immediately. We don't need the body,
+      // just the act of making the request is enough to warm up the connection.
+      controller.abort();
       break;
   }
 });

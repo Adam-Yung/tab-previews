@@ -1,8 +1,8 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "Link Previewer (Advanced)",
-  "version": "2.0",
-  "description": "Uses Shadow DOM and webRequest to preview links directly on the page.",
+  "version": "2.1",
+  "description": "Uses Shadow DOM to preview links directly on the page.",
   "icons": {
     "48": "icons/tab-preview 48x48.png",
     "96": "icons/tab-preview 96x96.png"
@@ -10,16 +10,19 @@
   "permissions": [
     "activeTab",
     "storage",
-    "webRequest",
-    "webRequestBlocking",
+    "declarativeNetRequestWithHostAccess"
+  ],
+  "host_permissions": [
     "<all_urls>"
   ],
   "web_accessible_resources": [
-    "options/options.html",
-    "preview_style.css"
+    {
+      "resources": [ "preview_style.css" ],
+      "matches": [ "<all_urls>" ]
+    }
   ],
   "background": {
-    "scripts": ["background.js"]
+    "service_worker": "background.js"
   },
   "content_scripts": [
     {
@@ -31,13 +34,8 @@
     "page": "options/options.html",
     "open_in_tab": true
   },
-  "browser_action": {
+  "action": {
     "default_icon": "icons/tab-preview 96x96.png",
     "default_title": "Link Previewer Settings"
-  },
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "link-previewer-advanced@example.com"
-    }
   }
 }

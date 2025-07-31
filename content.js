@@ -1,7 +1,7 @@
 // content.js
 
 let longClickTimer;
-let isPreviewing = false; // Prevent multiple previews
+let isPreviewing = false;
 let settings = {
   duration: 500,
   modifier: 'shiftKey',
@@ -9,20 +9,19 @@ let settings = {
   closeKey: 'Escape',
   width: '90vw',
   height: '90vh',
-  // New settings for position
   top: '50%',
   left: '50%'
 };
 
-// Store original page styles to restore them later
 let originalBodyOverflow;
 let originalDocumentOverflow;
 
-// --- Initialization ---
-browser.storage.local.get(settings).then(loadedSettings => {
+// Initialization
+chrome.storage.local.get(settings).then(loadedSettings => {
   Object.assign(settings, loadedSettings);
 });
-browser.storage.onChanged.addListener(changes => {
+
+chrome.storage.onChanged.addListener(changes => {
   for (let key in changes) {
     if (settings.hasOwnProperty(key)) {
       settings[key] = changes[key].newValue;
@@ -30,24 +29,23 @@ browser.storage.onChanged.addListener(changes => {
   }
 });
 
-function checkForIframeReady(frame) {
-  // Get the iframe's document
+function checkForIframeReady(frame, shadowRoot) {
   const iframeDoc = frame.contentDocument || frame.contentWindow.document;
 
-  // Check if the document is ready ('interactive' is the key state)
   if (iframeDoc && (iframeDoc.readyState === 'interactive' || iframeDoc.readyState === 'complete')) {
-    console.log('[CONTENT] Iframe is interactive, hiding loader.');
+    // console.log('[CONTENT] Iframe is interactive, scheduling hide loader.');
     frame.classList.add('loaded');
+    setTimeout(() => {
+      const loader = shadowRoot.getElementById('loader-container');
+      if (loader) {
+        loader.style.display = 'none';
+      }
+    }, 400);
   } else {
-    // If not ready, check again on the next animation frame
-    requestAnimationFrame(() => { checkForIframeReady(frame) });
+    requestAnimationFrame(() => { checkForIframeReady(frame, shadowRoot) });
   }
 }
 
-/**
- * Creates the preview UI and loads the content safely.
- * @param {string} url - The URL to preview.
- */
 function createPreview(url) {
   if (isPreviewing) return;
   isPreviewing = true;
@@ -55,15 +53,11 @@ function createPreview(url) {
 
   console.log(`[CONTENT] Starting preview for: ${url}`);
 
-  // --- SCROLL LOCK & PERFORMANCE FIX ---
-  // Store original overflow styles
   originalBodyOverflow = document.body.style.overflow;
   originalDocumentOverflow = document.documentElement.style.overflow;
-  // Disable scrolling on the parent page
   document.body.style.overflow = 'hidden';
   document.documentElement.style.overflow = 'hidden';
 
-  // Create a cheap, high-performance overlay
   const pageOverlay = document.createElement('div');
   pageOverlay.id = 'link-preview-page-overlay';
   Object.assign(pageOverlay.style, {
@@ -79,43 +73,32 @@ function createPreview(url) {
   });
   document.body.appendChild(pageOverlay);
 
-  // PERFORMANCE FIX 2: Pause all animations/transitions on the parent page
   const pauseStyle = document.createElement('style');
   pauseStyle.id = 'link-preview-animation-pauzer';
   pauseStyle.innerHTML = `
-  img[src$=".gif"] {
-      visibility: hidden !important;
-  }
-
+  img[src$=".gif"] { visibility: hidden !important; }
   * {
     animation-play-state: paused !important;
     transition: none !important;
-    transition-property: none !important;
-    transform: none !important;
     scroll-behavior: auto !important;
   }`;
   document.head.appendChild(pauseStyle);
-
-  // PERFORMANCE FIX 3: Disable mouse events on the background page
   document.body.style.pointerEvents = 'none';
 
-  // Create the host element for our Shadow DOM
   const previewHost = document.createElement('div');
   previewHost.id = 'link-preview-host';
-  previewHost.style.pointerEvents = 'auto'; // Re-enable pointer events for our UI
+  previewHost.style.pointerEvents = 'auto';
   document.body.appendChild(previewHost);
 
-  // Fade in the overlay
   requestAnimationFrame(() => {
     pageOverlay.style.opacity = '1';
   });
 
   const shadowRoot = previewHost.attachShadow({ mode: 'open' });
 
-  // Create the UI elements
   const styleLink = document.createElement('link');
   styleLink.rel = 'stylesheet';
-  styleLink.href = browser.runtime.getURL('preview_style.css');
+  styleLink.href = chrome.runtime.getURL('preview_style.css');
   shadowRoot.appendChild(styleLink);
 
   const clickInterceptor = document.createElement('div');
@@ -126,17 +109,14 @@ function createPreview(url) {
   container.id = 'link-preview-container';
   container.classList.add(settings.theme);
 
-  // Apply saved dimensions and position
   container.style.width = settings.width;
   container.style.height = settings.height;
   container.style.top = settings.top;
   container.style.left = settings.left;
 
-  // If position is centered, apply transform. Otherwise, don't.
   if (settings.top.includes('%') || settings.left.includes('%')) {
     container.classList.add('is-centered');
   }
-
 
   shadowRoot.appendChild(container);
 
@@ -153,7 +133,7 @@ function createPreview(url) {
   container.appendChild(addressBar);
 
   const loader = document.createElement('div');
-  loader.className = 'loader-container';
+  loader.id = 'loader-container';
   loader.innerHTML = `<div class="loader"></div>`;
   container.appendChild(loader);
 
@@ -161,10 +141,8 @@ function createPreview(url) {
   iframe.id = 'link-preview-iframe';
   container.appendChild(iframe);
 
-  // Add dragging functionality to the address bar
   addressBar.addEventListener('mousedown', (e) => initDrag(e, container, iframe));
 
-  // Add resize handles
   const resizeHandles = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
   resizeHandles.forEach(dir => {
     const handle = document.createElement('div');
@@ -173,23 +151,17 @@ function createPreview(url) {
     handle.addEventListener('mousedown', (e) => initResize(e, container, iframe, dir));
   });
 
-
-  // Ask background script to get ready for the network request
-  browser.runtime.sendMessage({ action: 'prepareToPreview', url: url })
+  chrome.runtime.sendMessage({ action: 'prepareToPreview', url: url })
     .then(response => {
       if (response && response.ready) {
         iframe.src = url;
-        iframe.onload = () => {
-          loader.style.display = 'none';
-        };
-        checkForIframeReady(iframe);
+        checkForIframeReady(iframe, shadowRoot);
       } else {
         console.error('[CONTENT] Background script not ready.');
         closePreview();
       }
     });
 
-  // Add Event Listeners for controls
   shadowRoot.getElementById('link-preview-close').addEventListener('click', closePreview);
   shadowRoot.getElementById('link-preview-enlarge').addEventListener('click', () => {
     window.open(url, '_blank');
@@ -201,23 +173,18 @@ function createPreview(url) {
     container.style.top = '50%';
     container.style.left = '50%';
     container.classList.add('is-centered');
-    browser.storage.local.set({
+    chrome.storage.local.set({
       width: container.style.width,
       height: container.style.height,
       top: container.style.top,
       left: container.style.left
     });
-
   });
+
   clickInterceptor.addEventListener('click', closePreview);
   document.addEventListener('keydown', handleEsc);
 }
 
-/**
- * Converts percentage-based centered position to fixed pixel-based position.
- * This is called once when a drag or resize action begins.
- * @param {HTMLElement} element The element to convert.
- */
 function convertToPixels(element) {
   if (element.classList.contains('is-centered')) {
     const rect = element.getBoundingClientRect();
@@ -225,30 +192,21 @@ function convertToPixels(element) {
     element.style.top = `${rect.top}px`;
     element.style.width = `${rect.width}px`;
     element.style.height = `${rect.height}px`;
-    element.classList.remove('is-centered'); // **THE FIX**: Remove class
+    element.classList.remove('is-centered');
     element.style.animation = 'none';
   }
 }
 
-
-/**
- * Initializes the dragging functionality for the preview window.
- * @param {MouseEvent} e - The mousedown event.
- * @param {HTMLElement} element - The element to drag.
- */
 function initDrag(e, element, iframe) {
-  // Only drag with the primary mouse button, and not on controls
   if (e.button !== 0 || e.target.closest('button')) {
     return;
   }
   e.preventDefault();
-
   convertToPixels(element);
 
   const offsetX = e.clientX - element.offsetLeft;
   const offsetY = e.clientY - element.offsetTop;
 
-  // Disable pointer events on the iframe while dragging
   iframe.style.pointerEvents = 'none';
 
   function doDrag(e) {
@@ -261,8 +219,7 @@ function initDrag(e, element, iframe) {
     document.documentElement.removeEventListener('mousemove', doDrag, false);
     document.documentElement.removeEventListener('mouseup', stopDrag, false);
 
-    // Save the new position
-    browser.storage.local.set({
+    chrome.storage.local.set({
       top: element.style.top,
       left: element.style.left
     });
@@ -272,19 +229,9 @@ function initDrag(e, element, iframe) {
   document.documentElement.addEventListener('mouseup', stopDrag, false);
 }
 
-
-/**
- * Initializes the resize functionality.
- * @param {MouseEvent} e - The mousedown event.
- * @param {HTMLElement} element - The element to resize.
- * @param {string} dir - The direction of the resize.
- */
 function initResize(e, element, iframe, dir) {
   e.preventDefault();
-
   convertToPixels(element);
-
-  // Disable pointer events on the iframe while resizing
   iframe.style.pointerEvents = 'none';
 
   const startX = e.clientX;
@@ -300,16 +247,12 @@ function initResize(e, element, iframe, dir) {
     let newLeft = startLeft;
     let newTop = startTop;
 
-    if (dir.includes('e')) {
-      newWidth = startWidth + e.clientX - startX;
-    }
+    if (dir.includes('e')) { newWidth = startWidth + e.clientX - startX; }
     if (dir.includes('w')) {
       newWidth = startWidth - (e.clientX - startX);
       newLeft = startLeft + e.clientX - startX;
     }
-    if (dir.includes('s')) {
-      newHeight = startHeight + e.clientY - startY;
-    }
+    if (dir.includes('s')) { newHeight = startHeight + e.clientY - startY; }
     if (dir.includes('n')) {
       newHeight = startHeight - (e.clientY - startY);
       newTop = startTop + e.clientY - startY;
@@ -323,13 +266,10 @@ function initResize(e, element, iframe, dir) {
 
   function stopDrag() {
     iframe.style.pointerEvents = 'auto';
-
     document.documentElement.removeEventListener('mousemove', doDrag, false);
     document.documentElement.removeEventListener('mouseup', stopDrag, false);
 
-
-    // Save the new dimensions and position
-    browser.storage.local.set({
+    chrome.storage.local.set({
       width: element.style.width,
       height: element.style.height,
       top: element.style.top,
@@ -340,10 +280,6 @@ function initResize(e, element, iframe, dir) {
   document.documentElement.addEventListener('mouseup', stopDrag, false);
 }
 
-
-/**
- * Closes and cleans up the preview window.
- */
 function closePreview() {
   if (!isPreviewing) return;
 
@@ -354,30 +290,25 @@ function closePreview() {
   if (previewHost) {
     const container = previewHost.shadowRoot.getElementById('link-preview-container');
     if (container) {
-      container.style.animation = 'fadeOut 0.2s forwards ease-out';
+      container.style.animation = 'fadeOut 0.3s forwards ease-out';
     }
   }
-
-  if (pageOverlay) {
-    pageOverlay.style.opacity = '0';
-  }
+  if (pageOverlay) { pageOverlay.style.opacity = '0'; }
 
   setTimeout(() => {
     if (previewHost) previewHost.remove();
     if (pageOverlay) pageOverlay.remove();
     if (pauseStyle) pauseStyle.remove();
 
-    // Restore parent page state
     document.body.style.pointerEvents = 'auto';
     document.body.style.overflow = originalBodyOverflow;
     document.documentElement.style.overflow = originalDocumentOverflow;
 
     document.removeEventListener('keydown', handleEsc);
-    browser.runtime.sendMessage({ action: 'clearPreview' });
-
+    chrome.runtime.sendMessage({ action: 'clearPreview' });
     isPreviewing = false;
     console.log('[CONTENT] Preview closed and cleaned up.');
-  }, 200); // Wait for animations to finish
+  }, 200);
 }
 
 function handleEsc(e) {
@@ -386,7 +317,6 @@ function handleEsc(e) {
   }
 }
 
-// --- Event Listeners for triggering preview ---
 document.addEventListener('mousedown', e => {
   if (isPreviewing) return;
   const link = e.target.closest('a');
@@ -415,21 +345,16 @@ document.addEventListener('click', e => {
   }
 }, true);
 
-
-/* For preconnecting on link hover in parent webpage */
 let hoverTimer = null;
 let lastHoveredUrl = null;
 
 document.addEventListener('mouseover', e => {
   const link = e.target.closest('a');
-
   if (link && link.href && link.href !== lastHoveredUrl) {
     lastHoveredUrl = link.href;
-
-    // Wait 100ms before pre-connecting to avoid firing on accidental mouse-overs.
     clearTimeout(hoverTimer);
     hoverTimer = setTimeout(() => {
-      browser.runtime.sendMessage({ action: 'preconnect', url: link.href });
+      chrome.runtime.sendMessage({ action: 'preconnect', url: link.href });
     }, 100);
   }
 });

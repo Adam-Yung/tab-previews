@@ -1,77 +1,59 @@
 // background.js
 
-let previewingUrl = null;
+const RULE_ID = 1;
 
-/**
- * The core logic: Intercepts network requests intended for the preview iframe.
- * It strips security headers that would prevent the page from being displayed.
- */
-function headersListener(details) {
-  // We only modify headers for the specific URL we are currently trying to preview.
-  if (details.type === 'sub_frame' && details.url === previewingUrl) {
-    console.log(`[BACKGROUND] Intercepted headers for target URL: ${details.url}`);
-    
-    const newHeaders = details.responseHeaders.filter(header => {
-      const headerName = header.name.toLowerCase();
-      // Remove security headers that prevent framing.
-      const isForbiddenHeader = 
-        headerName === 'content-security-policy' ||
-        headerName === 'x-frame-options' ||
-        headerName === 'x-content-type-options';
-      
-      if (isForbiddenHeader) {
-        console.log(`[BACKGROUND] Removing header: ${headerName}`);
-      }
-      return !isForbiddenHeader;
+// Clear all rules when the extension is first installed or updated.
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.declarativeNetRequest.updateDynamicRules({
+    removeRuleIds: [RULE_ID]
+  });
+});
+
+// Listens for messages from the content script.
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'prepareToPreview') {
+    // Add a rule to remove headers for the specific URL.
+    chrome.declarativeNetRequest.updateDynamicRules({
+      removeRuleIds: [RULE_ID], // First, remove any existing rule.
+      addRules: [{
+        id: RULE_ID,
+        priority: 1,
+        action: {
+          type: 'modifyHeaders',
+          responseHeaders: [
+            { header: 'x-frame-options', operation: 'remove' },
+            { header: 'content-security-policy', operation: 'remove' }
+          ]
+        },
+        condition: {
+          urlFilter: request.url, // Apply the rule only to this specific URL.
+          resourceTypes: ['sub_frame']
+        }
+      }]
+    }, () => {
+      console.log(`[BACKGROUND] Header modification rule added for: ${request.url}`);
+      sendResponse({ ready: true });
+    });
+    return true; // Indicates an async response.
+
+  } else if (request.action === 'clearPreview') {
+    // Remove the rule now that the preview is closed.
+    chrome.declarativeNetRequest.updateDynamicRules({
+      removeRuleIds: [RULE_ID]
+    }, () => {
+       console.log('[BACKGROUND] Header modification rule cleared.');
     });
 
-    // After we've successfully intercepted and modified the headers,
-    // we can clear the target URL to prevent accidentally modifying other requests.
-    previewingUrl = null;
-    console.log('[BACKGROUND] Headers modified. Clearing target URL.');
-
-    return { responseHeaders: newHeaders };
-  }
-  // Return unmodified headers for all other requests.
-  return { responseHeaders: details.responseHeaders };
-}
-
-// Register the webRequest listener
-browser.webRequest.onHeadersReceived.addListener(
-  headersListener,
-  { urls: ["<all_urls>"], types: ["sub_frame"] },
-  ["blocking", "responseHeaders"]
-);
-
-/**
- * Listens for messages from other parts of the extension.
- */
-browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  switch (request.action) {
-    // This is the new, race-condition-safe message.
-    case 'prepareToPreview':
-      console.log(`[BACKGROUND] Received request to prepare for: ${request.url}`);
-      previewingUrl = request.url;
-      // Immediately send a response back to the content script to confirm readiness.
-      sendResponse({ ready: true });
-      return true;
-    case 'clearPreview':
-      console.log('[BACKGROUND] Clearing preview state.');
-      previewingUrl = null;
-      break;
-    case 'preconnect':
-      // This is a "fire-and-forget" request. We don't care about the response,
-      // only that the browser establishes a connection to the origin.
-      // Using 'HEAD' is lighter than 'GET' as it doesn't download the page body.
-      console.log(`[BACKGROUND] Pre-connecting to: ${request.url}`);
-      fetch(request.url, { method: 'HEAD', mode: 'no-cors' }).catch(() => {
-          // Ignore errors, as this is just an optimization
-      });
-      break;
+  } else if (request.action === 'preconnect') {
+    // Preconnect to a URL to warm up the connection.
+    console.log(`[BACKGROUND] Preconnecting to: ${request.url}`);
+    fetch(request.url, { method: 'HEAD', mode: 'no-cors' }).catch(() => {
+      // This is an optimization; ignore errors.
+    });
   }
 });
 
 // Open options page when the toolbar icon is clicked
-browser.browserAction.onClicked.addListener(() => {
-  browser.runtime.openOptionsPage();
+chrome.action.onClicked.addListener(() => {
+  chrome.runtime.openOptionsPage();
 });

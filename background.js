@@ -7,28 +7,27 @@ let previewingUrl = null;
  * It strips security headers that would prevent the page from being displayed.
  */
 function headersListener(details) {
-  // We only modify headers for the specific URL we are currently trying to preview.
-  if (details.type === 'sub_frame' && details.url === previewingUrl) {
-    console.log(`[BACKGROUND] Intercepted headers for target URL: ${details.url}`);
-    
+  // MODIFIED: Instead of checking for a specific URL, we now modify headers
+  // for ANY sub_frame request as long as a preview is active (previewingUrl is not null).
+  if (details.type === 'sub_frame' && previewingUrl) {
+    console.log(`[BACKGROUND] Intercepted headers for a link inside the preview: ${details.url}`);
+
     const newHeaders = details.responseHeaders.filter(header => {
       const headerName = header.name.toLowerCase();
       // Remove security headers that prevent framing.
-      const isForbiddenHeader = 
+      const isForbiddenHeader =
         headerName === 'content-security-policy' ||
         headerName === 'x-frame-options' ||
         headerName === 'x-content-type-options';
-      
+
       if (isForbiddenHeader) {
         console.log(`[BACKGROUND] Removing header: ${headerName}`);
       }
       return !isForbiddenHeader;
     });
 
-    // After we've successfully intercepted and modified the headers,
-    // we can clear the target URL to prevent accidentally modifying other requests.
-    previewingUrl = null;
-    console.log('[BACKGROUND] Headers modified. Clearing target URL.');
+    // REMOVED: We no longer clear the previewingUrl here.
+    // It will be cleared only when the 'clearPreview' message is received.
 
     return { responseHeaders: newHeaders };
   }
@@ -54,10 +53,10 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
       previewingUrl = request.url;
       // Immediately send a response back to the content script to confirm readiness.
       sendResponse({ ready: true });
-      return true;
+      return true; // Keep the message channel open for the async response.
     case 'clearPreview':
       console.log('[BACKGROUND] Clearing preview state.');
-      previewingUrl = null;
+      previewingUrl = null; // This now becomes the sole place where previewingUrl is cleared.
       break;
     case 'preconnect':
       // This is a "fire-and-forget" request. We don't care about the response,

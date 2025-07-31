@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
-  "name": "Link Previewer (Advanced)",
+  "name": "Link Previewer",
   "version": "2.0",
-  "description": "Uses Shadow DOM and webRequest to preview links directly on the page.",
+  "description": "Preview links in a popup without leaving your current page",
   "icons": {
     "48": "icons/tab-preview 48x48.png",
     "96": "icons/tab-preview 96x96.png"
@@ -37,7 +37,7 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "link-previewer-advanced@example.com"
+      "id": "link-previewer@example.com"
     }
   }
 }

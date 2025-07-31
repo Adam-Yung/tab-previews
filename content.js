@@ -30,17 +30,23 @@ browser.storage.onChanged.addListener(changes => {
   }
 });
 
-function checkForIframeReady(frame) {
+function checkForIframeReady(frame, shadowRoot) {
   // Get the iframe's document
   const iframeDoc = frame.contentDocument || frame.contentWindow.document;
 
   // Check if the document is ready ('interactive' is the key state)
   if (iframeDoc && (iframeDoc.readyState === 'interactive' || iframeDoc.readyState === 'complete')) {
-    console.log('[CONTENT] Iframe is interactive, hiding loader.');
+    // console.log('[CONTENT] Iframe is interactive, hiding loader.');
     frame.classList.add('loaded');
+    setTimeout(() => {
+      const loader = shadowRoot.getElementById('loader-container');
+      if (loader) {
+        loader.style.display = 'none';
+      }
+    }, 400);
   } else {
     // If not ready, check again on the next animation frame
-    requestAnimationFrame(() => { checkForIframeReady(frame) });
+    requestAnimationFrame(() => { checkForIframeReady(frame, shadowRoot) });
   }
 }
 
@@ -153,7 +159,7 @@ function createPreview(url) {
   container.appendChild(addressBar);
 
   const loader = document.createElement('div');
-  loader.className = 'loader-container';
+  loader.id = 'loader-container';
   loader.innerHTML = `<div class="loader"></div>`;
   container.appendChild(loader);
 
@@ -179,10 +185,7 @@ function createPreview(url) {
     .then(response => {
       if (response && response.ready) {
         iframe.src = url;
-        iframe.onload = () => {
-          loader.style.display = 'none';
-        };
-        checkForIframeReady(iframe);
+        checkForIframeReady(iframe, shadowRoot);
       } else {
         console.error('[CONTENT] Background script not ready.');
         closePreview();
@@ -381,6 +384,7 @@ function closePreview() {
 }
 
 function handleEsc(e) {
+  console.log(`[CONTENT] Key pressed: ${e.key}`);
   if (e.key === settings.closeKey) {
     closePreview();
   }

@@ -8,68 +8,56 @@
   --error-color: #dc3545;
 
   /* Light Theme */
-  --bg-light: linear-gradient(120deg, #fdfbfb 0%, #ebedee 100%);
-  --card-bg-light: rgba(255, 255, 255, 0.55);
+  --bg-light: #f8f9fa;
+  --card-bg-light: #ffffff;
   --text-light: #212529;
   --border-light: rgba(0, 0, 0, 0.1);
-  --input-bg-light: rgba(255, 255, 255, 0.7);
+  --input-bg-light: #fdfdfd;
 
   /* Dark Theme */
-  --bg-dark: linear-gradient(to top, #1e3c72 0%, #2a5298 100%);
-  --card-bg-dark: rgba(33, 37, 41, 0.55);
+  --bg-dark: #212529;
+  --card-bg-dark: #343a40;
   --text-dark: #f8f9fa;
   --border-dark: rgba(255, 255, 255, 0.15);
-  --input-bg-dark: rgba(52, 58, 64, 0.7);
+  --input-bg-dark: #495057;
 }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   margin: 0;
-  padding: 20px;
-  min-height: 100vh;
+  padding: 15px;
   box-sizing: border-box;
-  transition: background-image 0.5s, color 0.5s;
+  transition: background-color 0.3s, color 0.3s;
+  width: 380px; /* Set a fixed width for the popup */
 }
 
 body.light-theme {
-  background-image: var(--bg-light);
+  background-color: var(--bg-light);
   color: var(--text-light);
 }
 
 body.dark-theme {
-  background-image: var(--bg-dark);
+  background-color: var(--bg-dark);
   color: var(--text-dark);
 }
 
 .container {
   width: 100%;
-  max-width: 600px;
-  margin: 20px auto;
-  padding: 30px 40px;
-  border-radius: 20px;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(15px) saturate(150%);
-  -webkit-backdrop-filter: blur(15px) saturate(150%);
-  transition: background-color 0.5s, border 0.5s;
-}
-
-body.light-theme .container {
-  background: var(--card-bg-light);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-}
-
-body.dark-theme .container {
-  background: var(--card-bg-dark);
-  border: 1px solid var(--border-dark);
+  padding: 0;
+  margin: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: none;
+  border: none;
 }
 
 header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 25px;
+    margin-bottom: 20px;
     border-bottom: 1px solid;
-    padding-bottom: 20px;
+    padding-bottom: 15px;
     transition: border-color 0.5s;
 }
 
@@ -78,30 +66,30 @@ body.dark-theme header { border-color: var(--border-dark); }
 
 h1 {
   margin: 0;
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 600;
 }
 
-.form-group { margin-bottom: 25px; }
+.form-group { margin-bottom: 20px; }
 
 label {
   display: block;
   margin-bottom: 5px;
   font-weight: 500;
-  font-size: 16px;
+  font-size: 14px;
 }
 .description {
-    font-size: 13px;
+    font-size: 12px;
     opacity: 0.7;
     margin-top: 0;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     font-weight: 400;
 }
 
 input[type="number"], input[type="text"], select {
   width: 100%;
-  padding: 12px;
-  border-radius: 8px;
+  padding: 10px;
+  border-radius: 6px;
   border: 1px solid;
   box-sizing: border-box;
   transition: border-color 0.3s, background-color 0.3s, color 0.3s;
@@ -128,12 +116,12 @@ input:focus, select:focus {
 
 button[type="submit"] {
   width: 100%;
-  padding: 12px;
+  padding: 10px;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   background-color: var(--primary-color);
   color: white;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: bold;
   cursor: pointer;
   transition: background-color 0.3s, transform 0.2s;
@@ -141,34 +129,31 @@ button[type="submit"] {
 
 button[type="submit"]:hover {
   background-color: var(--primary-hover);
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 #save-status {
-  margin-top: 15px;
+  margin-top: 10px;
   text-align: center;
   font-weight: bold;
-  height: 20px;
+  height: 18px;
+  font-size: 13px;
   transition: opacity 0.3s;
 }
 
 /* --- Theme Switcher --- */
-/* Container for the switcher (the label) */
 .theme-switcher {
   position: relative;
   display: inline-block;
-  /* Adjust size as needed */
   width: 24px;
   height: 24px;
   cursor: pointer;
 }
 
-/* Hide the default checkbox input */
 .theme-switcher input {
   display: none;
 }
 
-/* Position icons on top of each other */
 .theme-switcher svg {
   position: absolute;
   top: 0;
@@ -178,15 +163,13 @@ button[type="submit"]:hover {
   transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
-/* --- Icon Switching Logic --- */
-
-/* 1. Default state (light mode): show sun, hide moon */
+/* Default state (light mode): show sun, hide moon */
 .theme-switcher .moon {
   opacity: 0;
   transform: rotate(-90deg);
 }
 
-/* 2. Checked state (dark mode): hide sun, show moon */
+/* Checked state (dark mode): hide sun, show moon */
 .theme-switcher input:checked ~ .sun {
   opacity: 0;
   transform: rotate(90deg);

@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Link Previewer",
   "version": "2.0",
-  "description": "Preview links in a popup without leaving your current page",
+  "description": "Preview links in a popup without leaving your current page.",
   "icons": {
     "48": "icons/tab-preview 48x48.png",
     "96": "icons/tab-preview 96x96.png"
@@ -14,26 +14,20 @@
     "webRequestBlocking",
     "<all_urls>"
   ],
-  "web_accessible_resources": [
-    "options/options.html",
-    "preview_style.css"
-  ],
   "background": {
     "scripts": ["background.js"]
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"]
+      "js": ["content.js"],
+      "css": ["preview_style.css"]
     }
   ],
-  "options_ui": {
-    "page": "options/options.html",
-    "open_in_tab": true
-  },
   "browser_action": {
     "default_icon": "icons/tab-preview 96x96.png",
-    "default_title": "Link Previewer Settings"
+    "default_title": "Link Previewer Settings",
+    "default_popup": "options/options.html"
   },
   "browser_specific_settings": {
     "gecko": {

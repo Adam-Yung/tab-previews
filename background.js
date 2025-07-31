@@ -1,41 +1,42 @@
 // background.js
 
+/**
+ * @type {string|null}
+ * Holds the URL of the page currently being previewed. This is used as a flag
+ * to determine if a preview is active, which tells the onHeadersReceived
+ * listener whether to modify headers.
+ */
 let previewingUrl = null;
 
 /**
- * The core logic: Intercepts network requests intended for the preview iframe.
- * It strips security headers that would prevent the page from being displayed.
+ * Intercepts network requests and removes security headers from responses
+ * for sub_frame requests made by the preview iframe. This allows embedding
+ * sites that would otherwise block it via X-Frame-Options or CSP.
+ * @param {object} details - Details about the network request.
+ * @returns {object} The modified headers or original headers.
  */
 function headersListener(details) {
-  // MODIFIED: Instead of checking for a specific URL, we now modify headers
-  // for ANY sub_frame request as long as a preview is active (previewingUrl is not null).
+  // Only modify headers for sub_frame requests when a preview is active.
   if (details.type === 'sub_frame' && previewingUrl) {
-    console.log(`[BACKGROUND] Intercepted headers for a link inside the preview: ${details.url}`);
+    console.log(`[BACKGROUND] Intercepting headers for: ${details.url}`);
 
     const newHeaders = details.responseHeaders.filter(header => {
       const headerName = header.name.toLowerCase();
-      // Remove security headers that prevent framing.
-      const isForbiddenHeader =
+      // Strip headers that prevent the page from being iframed.
+      return !(
         headerName === 'content-security-policy' ||
         headerName === 'x-frame-options' ||
-        headerName === 'x-content-type-options';
-
-      if (isForbiddenHeader) {
-        console.log(`[BACKGROUND] Removing header: ${headerName}`);
-      }
-      return !isForbiddenHeader;
+        headerName === 'x-content-type-options'
+      );
     });
-
-    // REMOVED: We no longer clear the previewingUrl here.
-    // It will be cleared only when the 'clearPreview' message is received.
 
     return { responseHeaders: newHeaders };
   }
-  // Return unmodified headers for all other requests.
+  // Return original headers for all other requests.
   return { responseHeaders: details.responseHeaders };
 }
 
-// Register the webRequest listener
+// Register the webRequest listener to intercept sub_frame responses.
 browser.webRequest.onHeadersReceived.addListener(
   headersListener,
   { urls: ["<all_urls>"], types: ["sub_frame"] },
@@ -43,34 +44,31 @@ browser.webRequest.onHeadersReceived.addListener(
 );
 
 /**
- * Listens for messages from other parts of the extension.
+ * Handles messages from other parts of the extension, like content scripts.
  */
 browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
   switch (request.action) {
-    // This is the new, race-condition-safe message.
+    // Sent by the content script right before creating the iframe.
+    // This sets the `previewingUrl` flag to enable the header stripping logic.
     case 'prepareToPreview':
-      console.log(`[BACKGROUND] Received request to prepare for: ${request.url}`);
+      console.log(`[BACKGROUND] Preparing to preview: ${request.url}`);
       previewingUrl = request.url;
-      // Immediately send a response back to the content script to confirm readiness.
       sendResponse({ ready: true });
-      return true; // Keep the message channel open for the async response.
+      return true; // Indicates an async response.
+
+    // Sent by the content script when the preview is closed.
     case 'clearPreview':
       console.log('[BACKGROUND] Clearing preview state.');
-      previewingUrl = null; // This now becomes the sole place where previewingUrl is cleared.
+      previewingUrl = null;
       break;
+
+    // Pre-connects to a URL on hover for a potential speed-up.
     case 'preconnect':
-      // This is a "fire-and-forget" request. We don't care about the response,
-      // only that the browser establishes a connection to the origin.
-      // Using 'HEAD' is lighter than 'GET' as it doesn't download the page body.
-      console.log(`[BACKGROUND] Pre-connecting to: ${request.url}`);
+      // This is an optimization, so we fire and forget.
+      // 'HEAD' is used as it's lighter than a full 'GET'.
       fetch(request.url, { method: 'HEAD', mode: 'no-cors' }).catch(() => {
-          // Ignore errors, as this is just an optimization
+          // Ignore errors, this is not a critical function.
       });
       break;
   }
-});
-
-// Open options page when the toolbar icon is clicked
-browser.browserAction.onClicked.addListener(() => {
-  browser.runtime.openOptionsPage();
 });

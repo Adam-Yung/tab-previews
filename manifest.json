@@ -30,12 +30,9 @@
       "js": ["content.js"]
     }
   ],
-  "options_ui": {
-    "page": "options/options.html",
-    "open_in_tab": true
-  },
   "action": {
     "default_icon": "icons/tab-preview 96x96.png",
-    "default_title": "Link Previewer Settings"
+    "default_title": "Link Previewer Settings",
+    "default_popup": "options/options.html"
   }
 }

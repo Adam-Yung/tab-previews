@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Link Previewer (Advanced)",
+  "name": "Link Previewer",
   "version": "2.1",
-  "description": "Uses Shadow DOM to preview links directly on the page.",
+  "description": "Preview links in a popup without leaving your current page",
   "icons": {
     "48": "icons/tab-preview 48x48.png",
     "96": "icons/tab-preview 96x96.png"

@@ -15,7 +15,7 @@
   display: flex; flex-direction: column;
   pointer-events: auto;
   animation: fadeIn 0.3s forwards cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: transform, opacity;
+  will-change: transform, opacity, contents;
 }
 
 #link-preview-container.is-centered {
@@ -111,6 +111,7 @@
   visibility: hidden;
   opacity: 0;
   transition: opacity 0.2s ease-in;
+  content-visibility: auto;
 }
 
 #link-preview-iframe.loaded {

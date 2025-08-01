@@ -76,6 +76,7 @@
 .link-preview-controls {
   margin-left: auto;
   padding-left: 15px;
+  white-space: nowrap;
 }
 .link-preview-controls button {
   background: transparent;

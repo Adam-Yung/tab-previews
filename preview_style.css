@@ -18,10 +18,8 @@
   will-change: transform, opacity;
 }
 
-/* **THE FIX**: New rule for the centered state */
 #link-preview-container.is-centered {
   transform: translate(-50%, -50%);
-  /* Apply the centered animation instead */
   animation-name: fadeInCenter;
 }
 
@@ -47,7 +45,7 @@
   border: 2px solid rgba(255, 255, 255, 0.15);
 }
 #link-preview-container iframe {
-  border-radius: 0 0 var(--preview-border-radius) var(--preview-border-radius); /* Match the parent's border-radius */
+  border-radius: 0 0 var(--preview-border-radius) var(--preview-border-radius);
   width: 100%;
   height: 100%;
   border: none;
@@ -62,32 +60,24 @@
   flex-shrink: 0;
   backdrop-filter: blur(5px) saturate(150%);
   -webkit-backdrop-filter: blur(5px) saturate(150%);
-  cursor: move; /* Make it obvious the bar is draggable */
+  cursor: move;
 }
 #link-preview-container.light #link-preview-address-bar {
-  /* background: rgba(255, 255, 255, 0.05); */
   color: #111;
 }
-/* #link-preview-container.dark #link-preview-address-bar {
-  background: rgba(0, 0, 0, 0.05);
-} */
 .link-preview-url {
   flex-grow: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  /* margin-right: 15px;  <-- Remove this, as auto margin will handle spacing */
-  min-width: 0; /* THE FIX for URL truncation */
-  max-width: 80%; /* Apply your desired max-width here */
+  min-width: 0;
+  max-width: 80%;
 }
-
 .link-preview-controls {
-  margin-left: auto; /* This pushes it to the right */
-  /* If you still want a gap between the URL and controls, you can add padding-left to link-preview-controls
-     or add a margin-right to link-preview-url (but auto is usually preferred for the controls) */
-  padding-left: 15px; /* Add some padding if you removed margin-right from URL */
+  margin-left: auto;
+  padding-left: 15px;
+  white-space: nowrap;
 }
-
 .link-preview-controls button {
   background: transparent;
   border: none;
@@ -98,16 +88,14 @@
   opacity: 0.7;
   transition: opacity 0.2s, transform 0.2s;
 }
-
 .link-preview-controls button:hover {
   opacity: 1;
   transform: scale(1.1);
 }
-
 #loader-container {
   position: absolute; top: 40px; left: 0; right: 0; bottom: 0;
   display: flex; align-items: center; justify-content: center; background: transparent;
-  z-index: 1000;
+  z-index: 100;
 }
 .loader {
   border: 5px solid #f3f3f3; border-top: 5px solid #3498db; border-radius: 50%;
@@ -115,19 +103,19 @@
 }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 #link-preview-iframe {
-  flex-grow: 1; 
+  flex-grow: 1;
   border: none;
   border-top: 1px solid rgba(0, 0, 0, 0.1);
-  contain: strict; /* THE FIX for iframe rendering/scrolling performance */
-  background: transparent; /* Start transparent to not hide the loader */
-  visibility: hidden; /* Hide the iframe and its 'about:blank' page initially */
+  contain: strict;
+  background: transparent;
+  visibility: hidden;
   opacity: 0;
   transition: opacity 0.2s ease-in;
 }
 
 #link-preview-iframe.loaded {
   visibility: visible;
-  background: #fff; /* Show a background once loaded */
+  background: #fff;
   opacity: 1;
 }
 
@@ -136,40 +124,30 @@
 }
 
 #link-preview-container.dark #link-preview-iframe.loaded {
-  background: #1e1e1e; /* Dark background for dark mode */
+  background: #1e1e1e;
 }
-/* Base style for all handles */
 .resize-handle {
     position: absolute;
-    z-index: 100; /* Make sure handles are on top */
-    /* Debugging use only */
-    /* background: rgba(0, 100, 255, 0.4); */
+    z-index: 100;
 }
-
-/* Corner handles are 10x10 pixels */
 .resize-handle.ne, .resize-handle.nw, .resize-handle.se, .resize-handle.sw {
     width: 10px;
     height: 10px;
 }
-
-/* Side handles are larger for easier grabbing */
 .resize-handle.n, .resize-handle.s {
-    width: 90%;  /* Much wider */
+    width: 90%;
     height: 10px;
     left: 50%;
     transform: translateX(-50%);
     cursor: ns-resize;
 }
-
 .resize-handle.e, .resize-handle.w {
-    height: 90%; /* Much taller */
+    height: 90%;
     width: 10px;
     top: 50%;
     transform: translateY(-50%);
     cursor: ew-resize;
 }
-
-/* Position all handles to overlap the edge by 5px */
 .resize-handle.n  { top: -5px; }
 .resize-handle.s  { bottom: -5px; }
 .resize-handle.e  { right: -5px; }

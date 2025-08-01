@@ -1,86 +1,124 @@
 // background.js
 
 const RULE_ID = 1;
-// Keep track of the tab where the preview is active.
-let previewingTabId = null;
+// Use a Set to store the IDs of all tabs with an active preview.
+const previewingTabIds = new Set();
 
-// Clear session rules when the extension is installed or updated.
-chrome.runtime.onInstalled.addListener(() => {
-  // MODIFIED: Use updateSessionRules to clear any leftover rules.
-  chrome.declarativeNetRequest.updateSessionRules({
+// Define the rule object here to reuse it.
+const headerRule = {
+  id: RULE_ID,
+  priority: 1,
+  action: {
+    type: 'modifyHeaders',
+    responseHeaders: [
+      { header: 'x-frame-options', operation: 'remove' },
+      { header: 'content-security-policy', operation: 'remove' },
+      { header: 'x-content-type-options', operation: 'remove' }
+    ]
+  },
+  condition: {
+    resourceTypes: ['sub_frame', 'xmlhttprequest']
+  }
+};
+
+// --- Helper Functions to Manage the DNR Rule ---
+
+/**
+ * Enables the header modification rule.
+ * Checks if the rule is already active to avoid redundant API calls.
+ */
+async function enableRule() {
+  // 1. Get all currently active session rules.
+  const existingRules = await chrome.declarativeNetRequest.getSessionRules();
+
+  // 2. Check if a rule with our ID is already in the list.
+  if (existingRules.some(rule => rule.id === RULE_ID)) {
+    // console.log('[BACKGROUND] Rule is already active. No action needed.');
+    return; // Exit if the rule already exists.
+  }
+
+  // 3. If the rule is not found, add it.
+  await chrome.declarativeNetRequest.updateSessionRules({
+    addRules: [headerRule]
+  });
+  console.log('[BACKGROUND] Header modification rule ENABLED.');
+}
+
+
+/**
+ * Disables the header modification rule. This function is idempotent.
+ */
+async function disableRule() {
+  await chrome.declarativeNetRequest.updateSessionRules({
     removeRuleIds: [RULE_ID]
   });
+  console.log('[BACKGROUND] Header modification rule DISABLED.');
+}
+
+
+// --- Event Listeners ---
+
+// On installation, clear any existing session rules.
+chrome.runtime.onInstalled.addListener(() => {
+  disableRule();
 });
 
-// Listens for messages from the content script.
+// Listens for messages from content scripts.
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'prepareToPreview') {
-    previewingTabId = sender.tab.id;
-
-    // MODIFIED: Use updateSessionRules to add the rule.
-    // This is the key change to fix the error.
-    chrome.declarativeNetRequest.updateSessionRules({
-      removeRuleIds: [RULE_ID], // Clear any old rule first.
-      addRules: [{
-        id: RULE_ID,
-        priority: 1,
-        action: {
-          type: 'modifyHeaders',
-          responseHeaders: [
-            { header: 'x-frame-options', operation: 'remove' },
-            { header: 'content-security-policy', operation: 'remove' },
-            { header: 'x-content-type-options', operation: 'remove' }
-          ]
-        },
-        condition: {
-          // This condition now works because we are using a session rule.
-          tabIds: [previewingTabId],
-          resourceTypes: ['sub_frame']
-        }
-      }]
-    }, () => {
-      if (chrome.runtime.lastError) {
-        console.error(`Error adding session rule: ${chrome.runtime.lastError.message}`);
-      } else {
-        console.log(`[BACKGROUND] Header modification session rule added for tab: ${previewingTabId}`);
-      }
-      sendResponse({ ready: true });
-    });
-
-    return true; // Indicates you will send a response asynchronously.
+    const tabId = sender.tab.id;
+    console.log(`[BACKGROUND] Activating preview for tab: ${tabId}`);
+    previewingTabIds.add(tabId);
+    // Enable the rule immediately since this tab is now actively previewing.
+    enableRule();
+    sendResponse({ ready: true });
+    return;
 
   } else if (request.action === 'clearPreview') {
-    // MODIFIED: Use updateSessionRules to clear the rule.
-    if (previewingTabId !== null) {
-      chrome.declarativeNetRequest.updateSessionRules({
-        removeRuleIds: [RULE_ID]
-      }, () => {
-          if (chrome.runtime.lastError) {
-              console.error(`Error removing session rule: ${chrome.runtime.lastError.message}`);
-          } else {
-              console.log('[BACKGROUND] Header modification session rule cleared.');
-          }
+    const tabId = sender.tab.id;
+    if (previewingTabIds.has(tabId)) {
+      console.log(`[BACKGROUND] Deactivating preview for tab: ${tabId}`);
+      previewingTabIds.delete(tabId);
+      // After clearing a preview, check if the currently active tab is still
+      // a preview tab. If not, disable the rule.
+      chrome.tabs.query({ active: true, currentWindow: true }, (activeTabs) => {
+        if (!activeTabs[0] || !previewingTabIds.has(activeTabs[0].id)) {
+          disableRule();
+        }
       });
-      previewingTabId = null;
     }
-
   } else if (request.action === 'preconnect') {
     // Preconnect to warm up the connection (no changes needed here).
-    console.log(`[BACKGROUND] Preconnecting to: ${request.url}`);
     fetch(request.url, { method: 'HEAD', mode: 'no-cors' }).catch(() => {
       // This is an optimization; ignore errors.
     });
   }
 });
 
-// Clean up the rule if the tab is closed unexpectedly.
+/**
+ * Fired when the active tab in a window changes. This is the core logic
+ * for enabling/disabling the rule on tab switches.
+ */
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
+  if (previewingTabIds.has(activeInfo.tabId)) {
+    console.log(`[BACKGROUND] Switched TO a preview tab (${activeInfo.tabId}).`);
+    await enableRule();
+  } else {
+    console.log(`[BACKGROUND] Switched AWAY from a preview tab.`);
+    await disableRule();
+  }
+});
+
+// Clean up when a tab is closed.
 chrome.tabs.onRemoved.addListener((tabId) => {
-  if (tabId === previewingTabId) {
-    console.log(`[BACKGROUND] Preview tab ${tabId} closed, clearing session rule.`);
-    // MODIFIED: Use updateSessionRules here as well.
-    chrome.declarativeNetRequest.updateSessionRules({
-      removeRuleIds: [RULE_ID]
-    });
-    previewingTabId = null;
+  // Check if the closed tab was in our preview set.
+  if (previewingTabIds.has(tabId)) {
+    previewingTabIds.delete(tabId);
+    console.log(`[BACKGROUND] Preview tab ${tabId} closed, removed from set.`);
+    // If this was the very last previewing tab, ensure the rule is disabled.
+    if (previewingTabIds.size === 0) {
+      console.log('[BACKGROUND] Last preview tab closed. Disabling rule.');
+      disableRule();
+    }
   }
 });

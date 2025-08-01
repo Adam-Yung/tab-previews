@@ -19,6 +19,7 @@ let settings = {
 // Variables to store the original overflow styles of the page to restore them later.
 let originalBodyOverflow;
 let originalDocumentOverflow;
+let originalVisibilityStates = [];
 
 // --- Initialization ---
 
@@ -81,6 +82,9 @@ function createPreview(url) {
   document.body.style.overflow = 'hidden';
   document.documentElement.style.overflow = 'hidden';
 
+  // Clear any previous states
+  originalVisibilityStates = [];
+
   // Create a full-page overlay to dim the background.
   const pageOverlay = document.createElement('div');
   pageOverlay.id = 'link-preview-page-overlay';
@@ -121,7 +125,21 @@ function createPreview(url) {
   const previewHost = document.createElement('div');
   previewHost.id = 'link-preview-host';
   previewHost.style.pointerEvents = 'auto'; // Re-enable pointer events for the preview itself.
+  // Add the host to the body BEFORE hiding other elements
   document.body.appendChild(previewHost);
+
+  // Save original states and then hide elements
+  for (const child of document.body.children) {
+    if (child.id !== 'link-preview-host' && child.tagName !== 'SCRIPT') {
+      // Save the original value (even if it's empty)
+      originalVisibilityStates.push({
+        element: child,
+        originalValue: child.style.getPropertyValue('content-visibility')
+      });
+      // Now, set the new value
+      child.style.setProperty('content-visibility', 'auto', 'important');
+    }
+  }
 
   // Animate the overlay's opacity for a smooth fade-in effect.
   requestAnimationFrame(() => {
@@ -182,6 +200,7 @@ function createPreview(url) {
   // Create the iframe where the link content will be loaded.
   const iframe = document.createElement('iframe');
   iframe.id = 'link-preview-iframe';
+  iframe.sandbox = 'allow-scripts allow-same-origin allow-popups allow-forms';
   container.appendChild(iframe);
 
   // Enable dragging of the preview window via the address bar.
@@ -303,6 +322,7 @@ function initDrag(e, element, iframe) {
   document.documentElement.addEventListener('mouseup', stopDrag, false);
 }
 
+
 /**
  * Initializes the resizing functionality for the preview window.
  * @param {MouseEvent} e The initial mousedown event.
@@ -396,6 +416,13 @@ function closePreview() {
     if (previewHost) previewHost.remove();
     if (pageOverlay) pageOverlay.remove();
     if (pauseStyle) pauseStyle.remove();
+
+    // Restore the original content-visibility states
+    for (const state of originalVisibilityStates) {
+      state.element.style.setProperty('content-visibility', state.originalValue);
+    }
+    // Clean up the array
+    originalVisibilityStates = [];
 
     // Restore page functionality.
     document.body.style.pointerEvents = 'auto';

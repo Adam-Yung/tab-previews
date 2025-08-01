@@ -200,7 +200,6 @@ function createPreview(url) {
   // Create the iframe where the link content will be loaded.
   const iframe = document.createElement('iframe');
   iframe.id = 'link-preview-iframe';
-  iframe.sandbox = 'allow-scripts allow-same-origin allow-popups allow-forms';
   container.appendChild(iframe);
 
   // Enable dragging of the preview window via the address bar.

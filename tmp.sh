@@ -64,6 +64,10 @@ case $1 in
     [cC]hrome|c|C)
         build_chrome
         ;;
+    [cC]lean)
+        echo "Cleaning up dist..."
+        [ -d dist ] && rm -rf dist
+        ;;
     *)
         echo "Choose Firefox or Chrome" 1>&2
         exit 1

@@ -40,7 +40,7 @@ function saveOptions(e) {
     height: document.getElementById('height').value
   };
 
-  browser.storage.local.set(settings).then(() => {
+  chrome.storage.local.set(settings).then(() => {
     statusDiv.textContent = 'Settings Saved!';
     statusDiv.style.color = 'var(--success-color)';
     saveButton.textContent = 'Saved!';
@@ -59,7 +59,7 @@ function saveOptions(e) {
  * Restores saved settings from storage and populates the form.
  */
 function restoreOptions() {
-  browser.storage.local.get(defaults).then(items => {
+  chrome.storage.local.get(defaults).then(items => {
     document.getElementById('duration').value = items.duration;
     document.getElementById('modifier').value = items.modifier;
     document.getElementById('closeKey').value = items.closeKey;

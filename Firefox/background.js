@@ -1,6 +1,6 @@
 // background.js
 
-const DEBUG = true;
+const DEBUG = false;
 function debug(msg) {
   if (DEBUG)
     console.log(msg);

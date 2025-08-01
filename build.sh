@@ -1,5 +1,16 @@
 #!/bin/env bash
 
+<<NOTICE
+This script is deprecated.  Please use package.json to build distribution version
+
+If you must use this script for testing, just run
+./build.sh [platform]
+
+where platform may be chrome or firefox
+
+run ./build.sh clean to clean
+NOTICE
+
 build_firefox() {
     set -e
 
@@ -26,22 +37,18 @@ build_firefox() {
 }
 
 build_chrome() {
-   # Exit immediately if a command exits with a non-zero status.
     set -e
 
     echo "Starting extension build process..."
 
-    # 1. Remove the old 'dist' directory if it exists to ensure a clean build.
     if [ -d "dist" ]; then
         echo "Removing existing 'dist' directory..."
         rm -rf dist
     fi
 
-    # 2. Create a new, empty 'dist' directory.
     echo "Creating new 'dist' directory..."
     mkdir dist
 
-    # 3. Move all contents from 'Common' to 'dist'.
     echo "Moving contents from 'Common' to 'dist'..."
     cp -r Common/* dist/
 

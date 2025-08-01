@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Link Previewer",
-  "version": "2.0",
+  "version": "1.0.0",
   "description": "Preview links in a popup without leaving your current page.",
   "icons": {
     "48": "icons/tab-preview 48x48.png",

@@ -1,0 +1,12 @@
+{
+  "name": "link-previewer",
+  "version": "1.0.0",
+  "description": "Preview links in a popup without leaving your current page",
+  "private": true,
+  "scripts": {
+    "build": "npm run build:chrome",
+    "build:chrome": "npm run clean && mkdir dist && cp -r Common/* dist/ && cp -r Chrome/* dist/",
+    "build:firefox": "npm run clean && mkdir dist && cp -r Common/* dist/ && cp -r Firefox/* dist/ && find ./dist -type f -name '*.js' -print0 | xargs -0 sed -i 's/chrome/browser/g'",
+    "clean": "rm -rf dist"
+  }
+}

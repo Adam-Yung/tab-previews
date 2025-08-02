@@ -1,4 +1,4 @@
-# Link Previewer ✨
+# Link Previewer ✨ 
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/your-username/link-previewer)
 [![Version](https://img.shields.io/badge/version-1.0.0-blue)](https://github.com/your-username/link-previewer)
@@ -8,9 +8,7 @@ Tired of endlessly switching tabs just to see what's behind a link?<br>
 **Link Previewer** lets you peek into web pages without ever leaving your current tab. Enjoy an uncluttered browsing experience and an uninterrupted workflow!
 
 <br>
-
-![Link Previewer in Action](https://placehold.co/800x450/7c3aed/ffffff?text=GIF+of+Link+Previewer+in+Action)
-
+<img src="Common/icons/firefox-demo.gif" alt="Link Previewer in Action" width="700" height="400"> 
 <br>
 
 
@@ -38,10 +36,11 @@ The preview window can be moved by dragging its header and resized by dragging i
 
 ### ⚙️ Customization
 
-Tailor the extension to your exact needs. Click the Link Previewer icon in your browser's toolbar to open the settings panel.
+Toggle light/dark mode, set click duration and more! Click the Link Previewer icon in your browser's toolbar to open the settings panel.
 
-![Link Previewer Settings Panel](https://placehold.co/600x400/2d3748/ffffff?text=Image+of+Settings+Panel)
-
+## ✅ Compatibility
+Works with Manifest V3 and Chrome!
+<img src="Common/icons/chrome-demo.gif" alt="Link Previewer in Chrome" width="700" height="400"> 
 ---
 
 ## 🛠️ Building From Source

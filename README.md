@@ -4,8 +4,8 @@
 [![Version](https://img.shields.io/badge/version-1.0.0-blue)](https://github.com/your-username/link-previewer)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL3.0-yellow.svg)](https://opensource.org/licenses/GPL)
 
-Tired of endlessly switching tabs just to see what's behind a link?<br>
-**Link Previewer** lets you peek into web pages without ever leaving your current tab. Enjoy an uncluttered browsing experience and an uninterrupted workflow!
+📢 Stop opening new tabs for search results‼️ <br><br>
+**Link Previewer** lets you peek into web pages without ever leaving your current tab. Enjoy an uncluttered browsing experience and say goodbye to page-jumping!
 
 <br>
 <img src="Common/icons/firefox-demo.gif" alt="Link Previewer in Action" width="700" height="400"> 
@@ -20,6 +20,7 @@ Tired of endlessly switching tabs just to see what's behind a link?<br>
     * **Modifier Key + Click** (e.g., `Shift + Click`) for an instant preview.
 * **Fully Customizable Window**: Drag to move and resize the preview window to fit your workflow perfectly. Your size and position are saved automatically!
 * **Personalized Experience**: Use the settings panel to change the long-press duration, modifier keys, default window size, and more.
+* **Site-Specific Toggling**: Easily enable or disable the previewer for any website, giving you full control over your Browse environment.
 * **Light & Dark Modes**: A beautiful interface that adapts to your system's theme or your personal preference.
 * **Cross-Browser Support**: Works flawlessly on both **Google Chrome** and **Mozilla Firefox**.
 

@@ -48,6 +48,13 @@ Works with Manifest V3 and Chrome!
 <img src="Common/icons/chrome-demo.gif" alt="Link Previewer in Chrome" width="700" height="400"> 
 <br>
 
+### ⚠️ A Note for Firefox Users
+
+Firefox's **Enhanced Tracking Protection** is a great privacy feature! However, it could prevent Link Previewer from loading previews on certain websites (like previewing Reddit from Google as shown above).
+
+If you find that previews are not appearing, or for sites that frequently need previewing (like `www.google.com`) try turning off this protection **for that specific site only**. You can do this by clicking the **shield icon** to the left of the address bar and toggling the switch.
+<br>
+
 ## 🛠️ Building From Source
 
 Want to contribute or build your own version? Follow these simple steps.

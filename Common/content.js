@@ -200,6 +200,10 @@ function createPreview(url) {
   // Create the iframe where the link content will be loaded.
   const iframe = document.createElement('iframe');
   iframe.id = 'link-preview-iframe';
+  // Add the sandbox attribute specifically for Firefox
+  if (typeof browser !== 'undefined') {
+    iframe.sandbox = 'allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-presentation';
+  }
   container.appendChild(iframe);
 
   // Enable dragging of the preview window via the address bar.

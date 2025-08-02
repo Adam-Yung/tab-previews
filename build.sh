@@ -1,82 +1,86 @@
-#!/bin/env bash
+#!/bin/bash
 
-<<NOTICE
-This script is deprecated.  Please use package.json to build distribution version
+# A script to build the browser extension for Chrome and Firefox.
+#
+# Usage:
+#   ./build.sh chrome      - Builds the Chrome extension
+#   ./build.sh firefox     - Builds the Firefox extension
+#   ./build.sh clean       - Removes build artifacts
 
-If you must use this script for testing, just run
-./build.sh [platform]
+set -e
 
-where platform may be chrome or firefox
-
-run ./build.sh clean to clean
-NOTICE
-
-build_firefox() {
-    set -e
-
-    echo "Starting extension build process..."
-
-    if [ -d "dist" ]; then
-        echo "Removing existing 'dist' directory..."
-        rm -rf dist
-    fi
-
-    echo "Creating new 'dist' directory..."
-    mkdir dist
-
-    echo "Moving contents from 'Common' to 'dist'..."
-    cp -r Common/* dist/
-
-    echo "Replacing 'chrome' with 'browser' in all files..."
-    find ./dist -type f -exec grep -Iq . {} \; -print | xargs sed -i 's/chrome/browser/g'
-
-    echo "Copying 'Firefox' files to 'dist'..."
-    cp -r Firefox/* dist/
-
-    echo "Build complete. The 'dist' directory is ready."
+clean() {
+  echo "🧹 Cleaning up previous build artifacts..."
+  rm -rf dist
+  rm -f link-previewer-*.zip
 }
 
 build_chrome() {
-    set -e
+  local target="link-previewer-chrome.zip"
 
-    echo "Starting extension build process..."
+  echo "🚀 Building for Chrome..."
+  clean
+  mkdir -p dist
 
-    if [ -d "dist" ]; then
-        echo "Removing existing 'dist' directory..."
-        rm -rf dist
-    fi
+  # Use rsync to copy Common files while excluding .gif files.
+  echo "📂 Copying Common files (excluding .gif)..."
+  rsync -a --exclude='*.gif' Common/ dist/
 
-    echo "Creating new 'dist' directory..."
-    mkdir dist
+  echo "📂 Copying Chrome-specific files..."
+  cp -r Chrome/* dist/
 
-    echo "Moving contents from 'Common' to 'dist'..."
-    cp -r Common/* dist/
+  echo "📎 Zipping into ${target}..."
+  (cd dist && zip -r ../${target} .) > /dev/null 2>&1
 
-    echo "Copying 'Chrome' files to 'dist'..."
-    cp -r Chrome/* dist/
-
-    echo "Build complete. The 'dist' directory is ready."
+  echo
+  echo "✅ Chrome build complete: ${target}"
 }
 
-if [ -z "$1" ]; then
-    echo "Choose Firefox or Chrome" 1>&2
+build_firefox() {
+  local target="link-previewer-firefox.zip"
+
+  echo "🚀 Building for Firefox..."
+  clean
+  mkdir -p dist
+
+  echo "📂 Copying Common files (excluding .gif)..."
+  rsync -a --exclude='*.gif' Common/ dist/
+
+  echo "📂 Copying Firefox-specific files..."
+  cp -r Firefox/* dist/
+
+  # macOS's sed requires an extension for the -i flag, even if it's empty.
+  local sed_inplace
+  if [[ "$(uname)" == "Darwin" ]]; then
+    sed_inplace="sed -i ''"
+  else
+    sed_inplace="sed -i"
+  fi
+
+  echo "🔧 Replacing 'chrome' with 'browser' for Firefox compatibility..."
+  find ./dist -type f -name '*.js' -print0 | xargs -0 $sed_inplace 's/chrome/browser/g'
+
+  echo "📎 Zipping into ${target}..."
+  (cd dist && zip -r ../${target} .) > /dev/null 2>&1
+
+  echo "✅ Firefox build complete: ${target}"
+}
+
+
+
+case "$1" in
+  chrome)
+    build_chrome
+    ;;
+  firefox)
+    build_firefox
+    ;;
+  clean)
+    clean
+    echo "✅ Cleanup complete."
+    ;;
+  *)
+    echo "Usage: $0 {chrome|firefox|clean}"
     exit 1
-fi
-
-
-case $1 in 
-    [fF]irefox|f|F)
-        build_firefox
-        ;;
-    [cC]hrome|c|C)
-        build_chrome
-        ;;
-    [cC]lean)
-        echo "Cleaning up dist..."
-        [ -d dist ] && rm -rf dist
-        ;;
-    *)
-        echo "Choose Firefox or Chrome" 1>&2
-        exit 1
-        ;;
+    ;;
 esac

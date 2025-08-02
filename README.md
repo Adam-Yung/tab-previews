@@ -53,8 +53,9 @@ Want to contribute or build your own version? Follow these simple steps.
 
 ### Prerequisites
 
-* [Node.js](https://nodejs.org/) (which includes npm) installed on your system.
-* Linux-compliant system for bulding, though it is not hard to adapt the build commands for BSD or Windows
+* [Node.js](https://nodejs.org/) (which includes npm)
+  * *only if you want to run npm build wrapper around build.sh*
+* POSIX-compliant system for bulding, though it is not hard to adapt the script for Windows
 
 ### Steps
 
@@ -69,11 +70,11 @@ Want to contribute or build your own version? Follow these simple steps.
 
     * **For Google Chrome:**
         ```bash
-        npm run build:chrome
+        npm run build:chrome # Or equivalently ./build.sh chrome
         ```
     * **For Mozilla Firefox:**
         ```bash
-        npm run build:firefox
+        npm run build:firefox # Or equivalently ./build.sh firefox
         ```
     After running a build command, the complete, unpacked extension will be available in the `dist/` directory.
 

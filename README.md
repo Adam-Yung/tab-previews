@@ -38,7 +38,7 @@ The preview window can be moved by dragging its header and resized by dragging i
 
 Toggle light/dark mode, set click duration and more! Click the Link Previewer icon in your browser's toolbar to open the settings panel.
 <br>
-<img src="Common/icons/settings.png" alt="Link Previewer Settings" height="400"> 
+<img src="Common/icons/settings.gif" alt="Link Previewer Settings" height="400"> 
 <br>
 
 ## ✅ Compatibility

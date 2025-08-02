@@ -37,11 +37,15 @@ The preview window can be moved by dragging its header and resized by dragging i
 ### ⚙️ Customization
 
 Toggle light/dark mode, set click duration and more! Click the Link Previewer icon in your browser's toolbar to open the settings panel.
+<br>
+<img src="Common/icons/settings.png" alt="Link Previewer Settings" height="400"> 
+<br>
 
 ## ✅ Compatibility
 Works with Manifest V3 and Chrome!
+<br>
 <img src="Common/icons/chrome-demo.gif" alt="Link Previewer in Chrome" width="700" height="400"> 
----
+<br>
 
 ## 🛠️ Building From Source
 

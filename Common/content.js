@@ -13,28 +13,41 @@ let settings = {
   width: '90vw',       // Default width of the preview window.
   height: '90vh',      // Default height of the preview window.
   top: '50%',          // Default top position.
-  left: '50%'          // Default left position.
+  left: '50%',          // Default left position.
+  disabledSites: []    // Array of disabled hostnames.
 };
 
 // Variables to store the original overflow styles of the page to restore them later.
 let originalBodyOverflow;
 let originalDocumentOverflow;
 let originalVisibilityStates = [];
+let isCurrentSiteDisabled = false;
 
 // --- Initialization ---
 
-// Load user settings from chrome.storage and merge them with the default settings.
+// Load user settings from chrome.storage and check if this site is disabled.
 chrome.storage.local.get(settings).then(loadedSettings => {
   Object.assign(settings, loadedSettings);
+  // Check if the current page's hostname is in the disabled list.
+  if (Array.isArray(settings.disabledSites)) {
+      isCurrentSiteDisabled = settings.disabledSites.includes(window.location.hostname);
+  }
 });
 
 // Listen for changes in storage and update the local settings object in real-time.
-chrome.storage.onChanged.addListener(changes => {
-  for (let key in changes) {
-    if (settings.hasOwnProperty(key)) {
-      settings[key] = changes[key].newValue;
+chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local') {
+        let settingsChanged = false;
+        for (let key in changes) {
+            if (settings.hasOwnProperty(key)) {
+                settings[key] = changes[key].newValue;
+                settingsChanged = true;
+            }
+        }
+        if (settingsChanged && Array.isArray(settings.disabledSites)) {
+             isCurrentSiteDisabled = settings.disabledSites.includes(window.location.hostname);
+        }
     }
-  }
 });
 
 
@@ -456,6 +469,10 @@ function handleEsc(e) {
 // Listen for 'mousedown' to initiate either a long-press or a modifier-key preview.
 // Using the capture phase (true) to catch the event early.
 document.addEventListener('mousedown', e => {
+  // Check if the current site is disabled
+  if (isCurrentSiteDisabled) {
+    return;
+  }
   // Don't do anything if a preview is already active.
   if (isPreviewing) return;
   const link = e.target.closest('a');
@@ -498,6 +515,10 @@ let lastHoveredUrl = null;
 // When a user hovers over a link, send a message to the background script to preconnect.
 // This can speed up the eventual loading of the page in the preview.
 document.addEventListener('mouseover', e => {
+    // Check if the current site is disabled
+  if (isCurrentSiteDisabled) {
+    return;
+  }
   const link = e.target.closest('a');
   if (link && link.href && link.href !== lastHoveredUrl) {
     lastHoveredUrl = link.href;

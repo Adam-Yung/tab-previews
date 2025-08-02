@@ -6,6 +6,7 @@
   --primary-hover: #0b5ed7;
   --success-color: #198754;
   --error-color: #dc3545;
+  --toggle-bg-off: #ccc;
 
   /* Light Theme */
   --bg-light: #f8f9fa;
@@ -20,6 +21,7 @@
   --text-dark: #f8f9fa;
   --border-dark: rgba(255, 255, 255, 0.15);
   --input-bg-dark: #495057;
+  --toggle-bg-off-dark: #555;
 }
 
 body {
@@ -56,13 +58,9 @@ header {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
-    border-bottom: 1px solid;
     padding-bottom: 15px;
     transition: border-color 0.5s;
 }
-
-body.light-theme header { border-color: var(--border-light); }
-body.dark-theme header { border-color: var(--border-dark); }
 
 h1 {
   margin: 0;
@@ -94,6 +92,13 @@ input[type="number"], input[type="text"], select {
   box-sizing: border-box;
   transition: border-color 0.3s, background-color 0.3s, color 0.3s;
   font-size: 14px;
+}
+
+body.light-theme {
+    border-color: var(--border-light);
+}
+body.dark-theme {
+    border-color: var(--border-dark);
 }
 
 body.light-theme input, body.light-theme select {
@@ -178,4 +183,96 @@ button[type="submit"]:hover {
 .theme-switcher input:checked ~ .moon {
   opacity: 1;
   transform: rotate(0deg);
+}
+
+/* --- Site Toggle --- */
+.site-toggle-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 10px; /* Reduced vertical padding */
+    border-radius: 8px;
+    margin-bottom: 20px;
+    min-height: 40px; /* Set a min-height similar to other inputs */
+    box-sizing: border-box;
+}
+body.light-theme .site-toggle-container {
+    background-color: #e9ecef;
+}
+body.dark-theme .site-toggle-container {
+    background-color: #495057;
+}
+
+#current-hostname {
+    font-family: monospace;
+    font-size: 16px; /* Larger font size */
+    font-weight: bold;
+    flex-grow: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* Abbreviate long hostnames */
+    margin-right: 15px; /* Space between text and toggle */
+}
+
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 28px;
+  flex-shrink: 0; /* Prevent the switch from shrinking */
+}
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 28px;
+  transition: .4s;
+}
+body.light-theme .slider { background-color: var(--toggle-bg-off); }
+body.dark-theme .slider { background-color: var(--toggle-bg-off-dark); }
+
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: var(--primary-color);
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px var(--primary-color);
+}
+
+input:checked + .slider:before {
+  transform: translateX(22px);
+}
+
+.separator {
+    height: 1px;
+    width: 100%;
+    margin: 0 auto 20px;
+}
+body.light-theme .separator {
+    background-color: var(--border-light);
+}
+body.dark-theme .separator {
+    background-color: var(--border-dark);
 }

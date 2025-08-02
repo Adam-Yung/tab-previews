@@ -5,6 +5,11 @@ const form = document.getElementById('settings-form');
 const themeToggle = document.getElementById('theme-toggle');
 const statusDiv = document.getElementById('save-status');
 const saveButton = document.getElementById('save-button');
+const siteEnableToggle = document.getElementById('site-enable-toggle');
+const currentHostnameSpan = document.getElementById('current-hostname');
+
+// --- Global State ---
+let currentHostname = '';
 
 // --- Default Settings ---
 const defaults = {
@@ -13,7 +18,8 @@ const defaults = {
     theme: 'light',
     closeKey: 'Escape',
     width: '90vw',
-    height: '90vh'
+    height: '90vh',
+    disabledSites: [] // Now an array of hostnames
 };
 
 /**
@@ -26,46 +32,112 @@ function applyTheme(theme) {
 }
 
 /**
- * Saves the current form settings to browser storage.
+ * Saves the general settings (not the site toggle).
  * @param {Event} e - The form submission event.
  */
 function saveOptions(e) {
   e.preventDefault();
-  const settings = {
+  // We only save the general settings here. The site toggle is saved separately.
+  const generalSettings = {
     duration: document.getElementById('duration').value,
     modifier: document.getElementById('modifier').value,
     theme: themeToggle.checked ? 'dark' : 'light',
-    closeKey: document.getElementById('closeKey').value || 'Escape', // Default to Escape if empty
+    closeKey: document.getElementById('closeKey').value || 'Escape',
     width: document.getElementById('width').value,
     height: document.getElementById('height').value
   };
 
-  chrome.storage.local.set(settings).then(() => {
-    statusDiv.textContent = 'Settings Saved!';
-    statusDiv.style.color = 'var(--success-color)';
-    saveButton.textContent = 'Saved!';
+  // Get the existing disabledSites array to merge with general settings
+  chrome.storage.local.get('disabledSites').then(data => {
+      const fullSettings = {
+          ...generalSettings,
+          disabledSites: data.disabledSites || []
+      };
 
-    setTimeout(() => {
-        statusDiv.textContent = '';
-        saveButton.textContent = 'Save Settings';
-    }, 2000);
-  }, (error) => {
-    statusDiv.textContent = `Error: ${error}`;
-    statusDiv.style.color = 'var(--error-color)';
+      chrome.storage.local.set(fullSettings).then(() => {
+        statusDiv.textContent = 'Settings Saved!';
+        statusDiv.style.color = 'var(--success-color)';
+        saveButton.textContent = 'Saved!';
+
+        setTimeout(() => {
+            statusDiv.textContent = '';
+            saveButton.textContent = 'Save Settings';
+        }, 2000);
+      }, (error) => {
+        statusDiv.textContent = `Error: ${error}`;
+        statusDiv.style.color = 'var(--error-color)';
+      });
   });
 }
 
 /**
- * Restores saved settings from storage and populates the form.
+ * Handles the logic for the site-specific enable/disable toggle.
+ */
+function handleSiteToggle() {
+    if (!currentHostname) return;
+
+    chrome.storage.local.get({ disabledSites: [] }).then(data => {
+        let disabledSites = data.disabledSites;
+        const isCurrentlyDisabled = disabledSites.includes(currentHostname);
+
+        if (siteEnableToggle.checked) { // User wants to ENABLE it
+            if (isCurrentlyDisabled) {
+                // Remove it from the disabled list
+                disabledSites = disabledSites.filter(site => site !== currentHostname);
+            }
+        } else { // User wants to DISABLE it
+            if (!isCurrentlyDisabled) {
+                // Add it to the disabled list
+                disabledSites.push(currentHostname);
+            }
+        }
+        
+        // Save the updated list back to storage
+        chrome.storage.local.set({ disabledSites });
+    });
+}
+
+
+/**
+ * Restores all saved settings from storage and populates the form and toggle.
  */
 function restoreOptions() {
-  chrome.storage.local.get(defaults).then(items => {
-    document.getElementById('duration').value = items.duration;
-    document.getElementById('modifier').value = items.modifier;
-    document.getElementById('closeKey').value = items.closeKey;
-    document.getElementById('width').value = items.width;
-    document.getElementById('height').value = items.height;
-    applyTheme(items.theme);
+  // First, get the current tab's info
+  chrome.tabs.query({ active: true, currentWindow: true }).then(tabs => {
+    if (tabs[0] && tabs[0].url) {
+        try {
+            const url = new URL(tabs[0].url);
+            // Ignore chrome://, about:, etc.
+            if (url.protocol.startsWith('http')) {
+                 currentHostname = url.hostname;
+                 currentHostnameSpan.textContent = url.hostname;
+            } else {
+                currentHostnameSpan.textContent = 'this page';
+                document.querySelector('.site-toggle-container').style.display = 'none';
+            }
+        } catch (e) {
+            console.warn("Could not parse URL for current tab:", tabs[0].url);
+            currentHostnameSpan.textContent = 'this page';
+            document.querySelector('.site-toggle-container').style.display = 'none';
+        }
+    }
+
+    // Now get all settings from storage
+    chrome.storage.local.get(defaults).then(items => {
+        // Populate general settings
+        document.getElementById('duration').value = items.duration;
+        document.getElementById('modifier').value = items.modifier;
+        document.getElementById('closeKey').value = items.closeKey;
+        document.getElementById('width').value = items.width;
+        document.getElementById('height').value = items.height;
+        applyTheme(items.theme);
+
+        // Set the site-specific toggle
+        if (currentHostname) {
+            const isSiteDisabled = items.disabledSites.includes(currentHostname);
+            siteEnableToggle.checked = !isSiteDisabled;
+        }
+    });
   });
 }
 
@@ -75,3 +147,4 @@ form.addEventListener('submit', saveOptions);
 themeToggle.addEventListener('change', (e) => {
     applyTheme(e.target.checked ? 'dark' : 'light');
 });
+siteEnableToggle.addEventListener('change', handleSiteToggle);

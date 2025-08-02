@@ -22,6 +22,10 @@ let originalBodyOverflow;
 let originalDocumentOverflow;
 let originalVisibilityStates = [];
 let isCurrentSiteDisabled = false;
+// NEW: Variables to store scroll position
+let scrollX = 0;
+let scrollY = 0;
+
 
 // --- Initialization ---
 
@@ -88,6 +92,10 @@ function createPreview(url) {
   clearTimeout(longClickTimer); // Cancel any pending long-click timer.
 
   // console.log(`[CONTENT] Starting preview for: ${url}`);
+  // NEW: Save scroll position before applying any styles
+  scrollX = window.scrollX;
+  scrollY = window.scrollY;
+
 
   // Store original page overflow styles and then disable scrolling on the main page.
   originalBodyOverflow = document.body.style.overflow;
@@ -218,7 +226,7 @@ function createPreview(url) {
     iframe.sandbox = 'allow-scripts allow-same-origin allow-popups allow-forms allow-modals allow-presentation';
   }
   container.appendChild(iframe);
-
+  window.scrollTo(scrollX, scrollY);
   // Enable dragging of the preview window via the address bar.
   addressBar.addEventListener('mousedown', (e) => initDrag(e, container, iframe));
 
@@ -445,6 +453,9 @@ function closePreview() {
     document.body.style.overflow = originalBodyOverflow;
     document.documentElement.style.overflow = originalDocumentOverflow;
 
+    // NEW: Restore scroll position
+    window.scrollTo(scrollX, scrollY);
+
     // Clean up global listeners and state.
     document.removeEventListener('keydown', handleEsc);
     chrome.runtime.sendMessage({ action: 'clearPreview' }); // Tell background to clean up.
@@ -452,6 +463,7 @@ function closePreview() {
     // console.log('[CONTENT] Preview closed and cleaned up.');
   }, 200); // Delay should be slightly less than animation duration.
 }
+
 
 /**
  * Handles the keydown event to close the preview on 'Escape'.

@@ -1,3 +1,11 @@
+## [1.0.1] - 2025-08-02
+
+### Fixed
+
+* Fixed opening non-maximized preview window causes parent webpage to reset rendering and scroll to top issue
+
+---
+
 ## [1.0.0] - 2025-08-02
 
 ### Changed
